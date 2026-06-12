@@ -12,8 +12,7 @@
         local Window = DXForge:CreateWindow({
             Title = "DXForge Example",
             Size = {600, 500},
-            ToggleKey = "[INSERT]",
-            Startup = true
+            ToggleKey = "[INSERT]"
         })
 
         local Tab = Window:AddTab("Main")
@@ -35,6 +34,103 @@ local DXForge = _G.DXForge
 if DXForge and DXForge.__DXFORGE_VERSION == "1.0.0" then
     return DXForge
 end
+
+---@alias DXForgeColor table<number, number> RGB color table in the form `{r, g, b}` or `{r, g, b, a}`.
+---@alias DXForgeVector2 table<number, number> Position or size table in the form `{x, y}`.
+---@alias DXForgeSide '"left"'|'"right"'|'"full"'|'"middle"'
+---@alias DXForgeNotificationType '"Info"'|'"Success"'|'"Warning"'|'"Error"'
+---@alias DXForgeKeyMode '"Toggle"'|'"Hold"'
+
+---@class DXForgeTheme
+---@field FontColor DXForgeColor Main readable text color.
+---@field MainColor DXForgeColor Primary window surface color.
+---@field BackgroundColor DXForgeColor Inner content background color.
+---@field AccentColor DXForgeColor Active neon/accent color.
+---@field OutlineColor DXForgeColor Border and separator color.
+---@field ShadowColor DXForgeColor Shadow color.
+---@field SuccessColor DXForgeColor Success notification color.
+---@field WarningColor DXForgeColor Warning notification color.
+---@field ErrorColor DXForgeColor Error notification color.
+---@field DisabledColor DXForgeColor Disabled state color.
+---@field HoverColor DXForgeColor Hover surface color.
+---@field PanelColor DXForgeColor Control panel color.
+---@field TextMutedColor DXForgeColor Secondary text color.
+---@field GlowColor DXForgeColor Startup glow/accent color.
+
+---@class DXForgeWindowConfig
+---@field Title string|nil Window title.
+---@field Size DXForgeVector2|nil Window size in pixels.
+---@field Position DXForgeVector2|nil Window position in pixels.
+---@field StartLocation DXForgeVector2|nil Legacy alias for `Position`.
+---@field MinSize DXForgeVector2|nil Minimum size when resizing.
+---@field ToggleKey string|nil DX9 key string used to toggle the window.
+---@field Resizable boolean|nil Enables bottom-right resizing.
+---@field Footer boolean|nil Shows or hides the footer.
+---@field Theme string|nil Theme name.
+---@field Startup boolean|nil Deprecated/ignored. DXForge always runs its branded startup screen once.
+---@field Open boolean|nil Initial open state.
+
+---@class DXForgeBaseComponentConfig
+---@field Text string|number|nil Visible label text.
+---@field Name string|number|nil Alternative label text.
+---@field Tooltip string|nil Tooltip shown on hover.
+---@field Callback function|nil Callback invoked by the component.
+---@field Height number|nil Optional custom row height.
+---@field Visible boolean|nil Initial visibility.
+
+---@class DXForgeButtonConfig: DXForgeBaseComponentConfig
+
+---@class DXForgeToggleConfig: DXForgeBaseComponentConfig
+---@field Default boolean|nil Initial toggle value.
+---@field Keybind string|nil Optional key that toggles the value.
+
+---@class DXForgeSliderConfig: DXForgeBaseComponentConfig
+---@field Min number|nil Minimum value.
+---@field Max number|nil Maximum value.
+---@field Default number|nil Initial value.
+---@field Step number|nil Step size.
+
+---@class DXForgeDropdownConfig: DXForgeBaseComponentConfig
+---@field Values table List of selectable values.
+---@field Default any Initial selected value.
+
+---@class DXForgeMultiDropdownConfig: DXForgeBaseComponentConfig
+---@field Values table List of selectable values.
+---@field Default table|nil Initial selected values.
+
+---@class DXForgeTextboxConfig: DXForgeBaseComponentConfig
+---@field Placeholder string|nil Placeholder text.
+---@field Default string|nil Initial text value.
+---@field ClearButton boolean|nil Reserved for clear button behavior.
+
+---@class DXForgeKeybindConfig: DXForgeBaseComponentConfig
+---@field Default string|nil Initial DX9 key string.
+---@field Mode DXForgeKeyMode|nil Keybind behavior mode.
+
+---@class DXForgeColorPickerConfig: DXForgeBaseComponentConfig
+---@field Default DXForgeColor|nil Initial color.
+---@field Alpha boolean|nil Enables alpha-aware color storage.
+
+---@class DXForgeNotificationConfig
+---@field Text string Notification text. Supports newline characters.
+---@field Duration number|nil Lifetime in seconds.
+---@field Length number|nil Legacy alias for `Duration`.
+---@field Type DXForgeNotificationType|nil Notification accent type.
+---@field ManualClose boolean|nil Reserved for manual close behavior.
+
+---@class DXForgeWatermarkConfig
+---@field Text string|nil Watermark text.
+---@field Visible boolean|nil Watermark visibility.
+---@field Position DXForgeVector2|nil Watermark position.
+
+---@class DXForge
+---@field __DXFORGE_VERSION string
+---@field Name string
+---@field Author string
+---@field Signature string
+---@field Debug boolean
+---@field Config table
+---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
     __DXFORGE_VERSION = "1.0.0",
@@ -58,7 +154,8 @@ DXForge = {
         InputWindow = nil,
         HoveredTooltip = nil,
         PopupOwner = nil,
-        StartupQueued = false
+        StartupQueued = false,
+        StartupCompleted = false
     },
     Logo = {
         Source = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
@@ -249,6 +346,19 @@ DXForge.Themes.Default = {
     GlowColor = {145, 60, 255}
 }
 
+--[[
+    Registers a reusable DXForge theme.
+
+    @param name string
+        Unique theme name used by DXForge:SetTheme or CreateWindow({Theme = name}).
+    @param values table
+        Partial or complete theme token table. Missing values fall back to Default.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param name string
+---@param values table<string, DXForgeColor>
+---@return DXForge
 function DXForge:RegisterTheme(name, values)
     assertType("RegisterTheme.name", name, "string")
     assertType("RegisterTheme.values", values, "table")
@@ -266,12 +376,32 @@ function DXForge:RegisterTheme(name, values)
     return self
 end
 
+--[[
+    Sets the global active theme.
+
+    @param name string
+        Name of a registered theme.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param name string
+---@return DXForge
 function DXForge:SetTheme(name)
     assert(self.Themes[name], "[DXForge] Unknown theme: " .. tostring(name))
     self.ActiveTheme = name
     return self
 end
 
+--[[
+    Resolves a theme table by name.
+
+    @param name string|nil
+        Theme name. Uses the active theme when omitted.
+    @return table
+        Returns the resolved theme table.
+]]
+---@param name string|nil
+---@return DXForgeTheme
 function DXForge:GetTheme(name)
     return self.Themes[name or self.ActiveTheme] or self.Themes.Default
 end
@@ -438,6 +568,22 @@ DXForge.Input = Input
 
 --// Animation System ----------------------------------------------------------
 
+--[[
+    Interpolates a named animation value toward a target.
+
+    @param id string
+        Stable animation id.
+    @param target number
+        Target value.
+    @param speed number|nil
+        Optional interpolation speed. Uses Config.AnimationSpeed when omitted.
+    @return number
+        Smoothed animation value.
+]]
+---@param id string
+---@param target number
+---@param speed number|nil
+---@return number
 function DXForge:Animate(id, target, speed)
     local current = self.Animations[id]
     if current == nil then current = target end
@@ -447,6 +593,16 @@ function DXForge:Animate(id, target, speed)
     return current
 end
 
+--[[
+    Returns a looping 0..1 pulse value.
+
+    @param speed number|nil
+        Pulse speed multiplier.
+    @return number
+        Current pulse value between 0 and 1.
+]]
+---@param speed number|nil
+---@return number
 function DXForge:Pulse(speed)
     return (math.sin((os.clock() - self.Runtime.StartedAt) * (speed or 3)) + 1) / 2
 end
@@ -473,11 +629,31 @@ function Component:new(kind, groupbox, config)
     return object
 end
 
+--[[
+    Sets or replaces the tooltip text for a component.
+
+    @param text string
+        Tooltip text. Newline characters create multiline tooltips.
+    @return table
+        Returns the component instance for chaining.
+]]
+---@param text string
+---@return table
 function Component:SetTooltip(text)
     self.Tooltip = text
     return self
 end
 
+--[[
+    Updates component visibility.
+
+    @param value boolean
+        True to show the component, false to hide it.
+    @return table
+        Returns the component instance for chaining.
+]]
+---@param value boolean
+---@return table
 function Component:SetVisible(value)
     self.Visible = value == true
     return self
@@ -573,6 +749,19 @@ function Toggle:new(groupbox, config)
     return object
 end
 
+--[[
+    Updates a toggle value.
+
+    @param value boolean
+        New boolean state.
+    @param silent boolean|nil
+        When true, the callback is not invoked.
+    @return table
+        Returns the toggle instance.
+]]
+---@param value boolean
+---@param silent boolean|nil
+---@return table
 function Toggle:SetValue(value, silent)
     value = value == true
     if self.Value ~= value then
@@ -621,6 +810,19 @@ function Slider:new(groupbox, config)
     return object
 end
 
+--[[
+    Updates a slider value and clamps it to Min/Max.
+
+    @param value number
+        New numeric value.
+    @param silent boolean|nil
+        When true, the callback is not invoked.
+    @return table
+        Returns the slider instance.
+]]
+---@param value number
+---@param silent boolean|nil
+---@return table
 function Slider:SetValue(value, silent)
     local nextValue = clamp(round(tonumber(value) or self.Min, self.Step), self.Min, self.Max)
     if self.Value ~= nextValue then
@@ -760,6 +962,19 @@ function Textbox:new(groupbox, config)
     return object
 end
 
+--[[
+    Updates textbox text.
+
+    @param value string
+        New text value.
+    @param silent boolean|nil
+        When true, the callback is not invoked.
+    @return table
+        Returns the textbox instance.
+]]
+---@param value string
+---@param silent boolean|nil
+---@return table
 function Textbox:SetValue(value, silent)
     self.Value = tostring(value or "")
     if not silent then safeCall("Textbox:" .. self.Text, self.Callback, self.Value) end
@@ -811,6 +1026,19 @@ function Keybind:new(groupbox, config)
     return object
 end
 
+--[[
+    Updates a keybind key.
+
+    @param key string
+        DX9 key string such as "[INSERT]" or "[F4]".
+    @param silent boolean|nil
+        When true, the callback is not invoked.
+    @return table
+        Returns the keybind instance.
+]]
+---@param key string
+---@param silent boolean|nil
+---@return table
 function Keybind:SetKey(key, silent)
     self.Key = tostring(key or "[None]")
     if not silent then safeCall("Keybind:" .. self.Text, self.Callback, self.Key, self.State) end
@@ -971,51 +1199,151 @@ function Groupbox:add(component)
     return component
 end
 
+--[[
+    Adds a label to the groupbox.
+
+    @param config table|string
+        Label config table or direct text string.
+    @return table
+        Returns the label component.
+]]
+---@param config DXForgeBaseComponentConfig|string
+---@return table
 function Groupbox:AddLabel(config)
     if type(config) ~= "table" then config = {Text = tostring(config or "Label")} end
     return self:add(Label:new(self, config))
 end
 
+--[[
+    Adds a divider line to the groupbox.
+
+    @param text string|table|nil
+        Optional divider label or config table.
+    @return table
+        Returns the divider component.
+]]
+---@param text string|table|nil
+---@return table
 function Groupbox:AddDivider(text)
     local config = type(text) == "table" and text or {Text = text or ""}
     return self:add(Divider:new(self, config))
 end
 
+--[[
+    Adds a clickable button.
+
+    @param config table
+        Button config with Text, Tooltip, Callback, and optional layout fields.
+    @return table
+        Returns the button component.
+]]
+---@param config DXForgeButtonConfig
+---@return table
 function Groupbox:AddButton(config)
     assertType("AddButton.config", config, "table")
     return self:add(Button:new(self, config))
 end
 
+--[[
+    Adds a boolean toggle switch.
+
+    @param config table
+        Toggle config with Text, Default, Keybind, Tooltip, and Callback.
+    @return table
+        Returns the toggle component.
+]]
+---@param config DXForgeToggleConfig
+---@return table
 function Groupbox:AddToggle(config)
     assertType("AddToggle.config", config, "table")
     return self:add(Toggle:new(self, config))
 end
 
+--[[
+    Adds a numeric slider.
+
+    @param config table
+        Slider config with Text, Min, Max, Default, Step, Tooltip, and Callback.
+    @return table
+        Returns the slider component.
+]]
+---@param config DXForgeSliderConfig
+---@return table
 function Groupbox:AddSlider(config)
     assertType("AddSlider.config", config, "table")
     return self:add(Slider:new(self, config))
 end
 
+--[[
+    Adds a single-select dropdown.
+
+    @param config table
+        Dropdown config with Text, Values, Default, Tooltip, and Callback.
+    @return table
+        Returns the dropdown component.
+]]
+---@param config DXForgeDropdownConfig
+---@return table
 function Groupbox:AddDropdown(config)
     assertType("AddDropdown.config", config, "table")
     return self:add(Dropdown:new(self, config, false))
 end
 
+--[[
+    Adds a multi-select dropdown.
+
+    @param config table
+        MultiDropdown config with Text, Values, Default, Tooltip, and Callback.
+    @return table
+        Returns the multi-dropdown component.
+]]
+---@param config DXForgeMultiDropdownConfig
+---@return table
 function Groupbox:AddMultiDropdown(config)
     assertType("AddMultiDropdown.config", config, "table")
     return self:add(Dropdown:new(self, config, true))
 end
 
+--[[
+    Adds a textbox input.
+
+    @param config table
+        Textbox config with Text, Placeholder, Default, Tooltip, and Callback.
+    @return table
+        Returns the textbox component.
+]]
+---@param config DXForgeTextboxConfig
+---@return table
 function Groupbox:AddTextbox(config)
     assertType("AddTextbox.config", config, "table")
     return self:add(Textbox:new(self, config))
 end
 
+--[[
+    Adds a keybind selector.
+
+    @param config table
+        Keybind config with Text, Default, Mode, Tooltip, and Callback.
+    @return table
+        Returns the keybind component.
+]]
+---@param config DXForgeKeybindConfig
+---@return table
 function Groupbox:AddKeybind(config)
     assertType("AddKeybind.config", config, "table")
     return self:add(Keybind:new(self, config))
 end
 
+--[[
+    Adds an RGB color picker.
+
+    @param config table
+        ColorPicker config with Text, Default, Alpha, Tooltip, and Callback.
+    @return table
+        Returns the color picker component.
+]]
+---@param config DXForgeColorPickerConfig
+---@return table
 function Groupbox:AddColorPicker(config)
     assertType("AddColorPicker.config", config, "table")
     return self:add(ColorPicker:new(self, config))
@@ -1065,6 +1393,19 @@ function Tab:new(window, name)
     }, self)
 end
 
+--[[
+    Adds a groupbox/section to a tab.
+
+    @param name string
+        Section title.
+    @param side string|nil
+        Layout side: "left", "right", "full", or "middle".
+    @return table
+        Returns the groupbox instance.
+]]
+---@param name string
+---@param side DXForgeSide|nil
+---@return table
 function Tab:AddGroupbox(name, side)
     side = tostring(side or "left"):lower()
     if side == "middle" then side = "full" end
@@ -1074,18 +1415,55 @@ function Tab:AddGroupbox(name, side)
     return groupbox
 end
 
+--[[
+    Adds a left-column groupbox.
+
+    @param name string
+        Section title.
+    @return table
+        Returns the groupbox instance.
+]]
+---@param name string
+---@return table
 function Tab:AddLeftGroupbox(name)
     return self:AddGroupbox(name, "left")
 end
 
+--[[
+    Adds a right-column groupbox.
+
+    @param name string
+        Section title.
+    @return table
+        Returns the groupbox instance.
+]]
+---@param name string
+---@return table
 function Tab:AddRightGroupbox(name)
     return self:AddGroupbox(name, "right")
 end
 
+--[[
+    Adds a full-width groupbox.
+
+    @param name string
+        Section title.
+    @return table
+        Returns the groupbox instance.
+]]
+---@param name string
+---@return table
 function Tab:AddMiddleGroupbox(name)
     return self:AddGroupbox(name, "full")
 end
 
+--[[
+    Makes this tab the active tab on its parent window.
+
+    @return table
+        Returns the tab instance.
+]]
+---@return table
 function Tab:Focus()
     self.Window.ActiveTab = self
     return self
@@ -1124,6 +1502,7 @@ function Window:new(config)
     local size = normalizeVec2(config.Size, {600, 500})
     local position = normalizeVec2(config.Position or config.StartLocation, {math.floor((sw - size[1]) / 2), math.floor((sh - size[2]) / 2)})
     DXForge.Runtime.ZCounter = DXForge.Runtime.ZCounter + 1
+    local requiresStartup = not DXForge.Runtime.StartupQueued and not DXForge.Runtime.StartupCompleted
 
     local object = setmetatable({
         Title = config.Title or "DXForge Window",
@@ -1144,7 +1523,7 @@ function Window:new(config)
         ZIndex = DXForge.Runtime.ZCounter,
         Alpha = 1,
         Scale = 1,
-        Startup = config.Startup == true,
+        Startup = requiresStartup,
         Id = "Window:" .. tostring(math.random(100000, 999999)) .. ":" .. tostring(os.clock())
     }, self)
 
@@ -1161,6 +1540,16 @@ function Window:new(config)
     return object
 end
 
+--[[
+    Adds a tab to the window.
+
+    @param name string
+        Tab display name.
+    @return table
+        Returns the created tab instance.
+]]
+---@param name string
+---@return table
 function Window:AddTab(name)
     local tab = Tab:new(self, name)
     table.insert(self.Tabs, tab)
@@ -1168,16 +1557,40 @@ function Window:AddTab(name)
     return tab
 end
 
+--[[
+    Sets window open state.
+
+    @param value boolean
+        True to open, false to close.
+    @return table
+        Returns the window instance.
+]]
+---@param value boolean
+---@return table
 function Window:SetOpen(value)
     self.Open = value == true
     return self
 end
 
+--[[
+    Toggles window open state.
+
+    @return table
+        Returns the window instance.
+]]
+---@return table
 function Window:Toggle()
     self.Open = not self.Open
     return self
 end
 
+--[[
+    Raises the window above other DXForge windows.
+
+    @return table
+        Returns the window instance.
+]]
+---@return table
 function Window:BringToFront()
     DXForge.Runtime.ZCounter = DXForge.Runtime.ZCounter + 1
     self.ZIndex = DXForge.Runtime.ZCounter
@@ -1314,11 +1727,13 @@ end
             - Resizable: boolean
             - Footer: boolean
             - Theme: string
-            - Startup: boolean
+            - Startup: deprecated/ignored. DXForge always runs its branded startup once.
 
     @return table
         Returns the created window instance.
 ]]
+---@param config DXForgeWindowConfig
+---@return table
 function DXForge:CreateWindow(config)
     local window = Window:new(config or {})
     table.insert(self.Windows, window)
@@ -1328,6 +1743,22 @@ end
 
 --// Notifications -------------------------------------------------------------
 
+--[[
+    Creates a slide/fade notification.
+
+    @param config table|string
+        Notification config table or direct text string.
+    @param length number|nil
+        Legacy duration argument used when config is a string.
+    @param kind string|nil
+        Legacy notification type argument used when config is a string.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param config DXForgeNotificationConfig|string
+---@param length number|nil
+---@param kind DXForgeNotificationType|nil
+---@return DXForge
 function DXForge:Notify(config, length, kind)
     if type(config) ~= "table" then
         config = {Text = tostring(config or ""), Duration = length, Type = kind}
@@ -1413,6 +1844,16 @@ end
 
 --// Watermark -----------------------------------------------------------------
 
+--[[
+    Configures the DXForge watermark.
+
+    @param config table|string
+        Watermark config table or direct text string.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param config DXForgeWatermarkConfig|string
+---@return DXForge
 function DXForge:SetWatermark(config)
     if type(config) ~= "table" then
         config = {Text = tostring(config or "")}
@@ -1455,6 +1896,7 @@ function DXForge:renderStartup(theme)
 
     if age >= duration then
         startup.Done = true
+        self.Runtime.StartupCompleted = true
         if startup.Window then startup.Window.Visible = true end
         return false
     end
@@ -1504,6 +1946,15 @@ function DXForge:beginFrame()
     Input:update()
 end
 
+--[[
+    Updates input and renders the full DXForge frame.
+
+    Call this once per DX9 frame/script tick after constructing the UI.
+
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@return DXForge
 function DXForge:Render()
     self:beginFrame()
     local theme = self:GetTheme()
@@ -1533,6 +1984,15 @@ function DXForge:Render()
     return self
 end
 
+--[[
+    Clears all DXForge runtime UI state.
+
+    Removes windows, notifications, and animation cache entries.
+
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@return DXForge
 function DXForge:Destroy()
     self.Windows = {}
     self.WindowOrder = {}
@@ -1543,11 +2003,28 @@ end
 
 --// Debug / Logging -----------------------------------------------------------
 
+--[[
+    Enables or disables debug logging.
+
+    @param value boolean
+        True to enable debug warnings and callback error output.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param value boolean
+---@return DXForge
 function DXForge:SetDebug(value)
     self.Debug = value == true
     return self
 end
 
+--[[
+    Emits a debug warning when debug mode is enabled.
+
+    @param message any
+        Message to print.
+]]
+---@param message any
 function DXForge:Warn(message)
     if self.Debug then
         print("[DXForge] " .. tostring(message))

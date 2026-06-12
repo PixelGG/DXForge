@@ -75,7 +75,6 @@ local Window = DXForge:CreateWindow({
     Size = {600, 500},
     ToggleKey = "[INSERT]",
     Theme = "Default",
-    Startup = true,
     Resizable = true
 })
 

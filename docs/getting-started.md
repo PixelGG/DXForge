@@ -23,7 +23,6 @@ local Window = DXForge:CreateWindow({
     Title = "DXForge Menu",
     Size = {600, 500},
     ToggleKey = "[INSERT]",
-    Startup = true,
     Resizable = true
 })
 ```
@@ -81,8 +80,7 @@ local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/Pixel
 local Window = DXForge:CreateWindow({
     Title = "DXForge Starter",
     Size = {560, 420},
-    ToggleKey = "[INSERT]",
-    Startup = true
+    ToggleKey = "[INSERT]"
 })
 
 local Tab = Window:AddTab("Main")
@@ -102,4 +100,3 @@ Box:AddButton({
 
 DXForge:Render()
 ```
-

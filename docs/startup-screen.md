@@ -8,16 +8,17 @@
 
 [Back to docs](README.md)
 
-## Enable Startup
+## Mandatory Startup
 
 ```lua
 local Window = DXForge:CreateWindow({
-    Title = "DXForge",
-    Startup = true
+    Title = "DXForge"
 })
 ```
 
-When startup is enabled, the main UI waits until the loading animation finishes.
+DXForge always runs its branded startup screen once when the first window is created. This is part of the library identity and is not controlled by user config.
+
+`Startup = false` is ignored intentionally.
 
 ## What It Renders
 
@@ -46,5 +47,4 @@ If `dx9.DrawImage` or remote asset loading is not available, DXForge gracefully 
 DXForge.Config.StartupDuration = 3.15
 ```
 
-Shorter values feel faster. Longer values give the branding more presence.
-
+This value controls the branded intro duration. The startup itself remains mandatory.

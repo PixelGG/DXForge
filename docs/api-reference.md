@@ -28,7 +28,7 @@
 | `Resizable` | `boolean` | `false` |
 | `Footer` | `boolean` | `true` |
 | `Theme` | `string` | `"Default"` |
-| `Startup` | `boolean` | `false` |
+| `Startup` | `boolean` | Deprecated/ignored. Branding startup always runs once. |
 | `Open` | `boolean` | `true` |
 
 ## Window

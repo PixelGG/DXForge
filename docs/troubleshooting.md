@@ -20,11 +20,7 @@ local Window = DXForge:CreateWindow({Title = "Menu"})
 
 ## Startup Shows But Menu Does Not Appear
 
-Startup hides the window until the intro completes. Wait for `DXForge.Config.StartupDuration`, or disable startup:
-
-```lua
-Startup = false
-```
+Startup hides the window until the intro completes. This is intentional DXForge branding behavior and cannot be disabled through `CreateWindow` config. Wait for `DXForge.Config.StartupDuration`.
 
 ## Logo Does Not Render
 

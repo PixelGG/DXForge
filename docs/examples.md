@@ -10,8 +10,7 @@
 local Window = DXForge:CreateWindow({
     Title = "Two Column Layout",
     Size = {640, 520},
-    ToggleKey = "[INSERT]",
-    Startup = true
+    ToggleKey = "[INSERT]"
 })
 
 local Main = Window:AddTab("Main")
@@ -83,4 +82,3 @@ Feedback:AddButton({
     end
 })
 ```
-
