@@ -41,6 +41,14 @@ local Window = DXForge:CreateWindow({
 })
 ```
 
+Resize from code with:
+
+```lua
+Window:Resize(720, 540)
+Window:SetSize({640, 480})
+Window:SetMinSize({420, 320})
+```
+
 ## Toggle Key
 
 ```lua
@@ -56,4 +64,3 @@ local Window = DXForge:CreateWindow({
 - Child controls can still receive the same click.
 - Dragging and resizing continue even if the mouse leaves the window.
 - Popups, dropdowns, and color pickers claim input while open.
-

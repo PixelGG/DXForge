@@ -37,6 +37,9 @@
 | --- | --- |
 | `Window:AddTab(name)` | Creates and returns a tab. |
 | `Window:SetOpen(value)` | Opens or closes the window. |
+| `Window:Resize(width, height)` | Resizes the window and respects `MinSize`. |
+| `Window:SetSize({width, height})` | Table-based alias for `Window:Resize`. |
+| `Window:SetMinSize({width, height})` | Updates minimum resize bounds. |
 | `Window:Toggle()` | Toggles open state. |
 | `Window:BringToFront()` | Moves the window above other windows. |
 

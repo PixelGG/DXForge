@@ -1622,6 +1622,57 @@ function Window:SetOpen(value)
 end
 
 --[[
+    Resizes the window to an exact width and height.
+
+    @param width number|table
+        New width in pixels, or a size table in the form {width, height}.
+    @param height number|nil
+        New height in pixels when width is passed as a number.
+    @return table
+        Returns the window instance.
+]]
+---@param width number|DXForgeVector2
+---@param height number|nil
+---@return table
+function Window:Resize(width, height)
+    local size = type(width) == "table" and width or {width, height}
+    local nextWidth = tonumber(size[1]) or self.Size[1]
+    local nextHeight = tonumber(size[2]) or self.Size[2]
+    self.Size[1] = math.max(self.MinSize[1], nextWidth)
+    self.Size[2] = math.max(self.MinSize[2], nextHeight)
+    return self
+end
+
+--[[
+    Alias for Window:Resize.
+
+    @param size table
+        Size table in the form {width, height}.
+    @return table
+        Returns the window instance.
+]]
+---@param size DXForgeVector2
+---@return table
+function Window:SetSize(size)
+    return self:Resize(size)
+end
+
+--[[
+    Updates the minimum resize size for this window.
+
+    @param size table
+        Minimum size table in the form {width, height}.
+    @return table
+        Returns the window instance.
+]]
+---@param size DXForgeVector2
+---@return table
+function Window:SetMinSize(size)
+    self.MinSize = normalizeVec2(size, self.MinSize)
+    return self:Resize(self.Size)
+end
+
+--[[
     Toggles window open state.
 
     @return table
@@ -1691,8 +1742,7 @@ function Window:handleInput(theme)
         self.Position[2] = clamp(Input.Mouse.y - self.DragOffset[2], 0, sh - 35)
     elseif self.Resizing then
         Input:claim(id .. ":resize")
-        self.Size[1] = math.max(self.MinSize[1], Input.Mouse.x - x)
-        self.Size[2] = math.max(self.MinSize[2], Input.Mouse.y - y)
+        self:Resize(Input.Mouse.x - x, Input.Mouse.y - y)
     end
 end
 

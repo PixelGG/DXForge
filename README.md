@@ -138,6 +138,9 @@ DXForge:Render()
 | Core | `DXForge:SetTheme(name)` |
 | Window | `Window:AddTab(name)` |
 | Window | `Window:SetOpen(value)` |
+| Window | `Window:Resize(width, height)` |
+| Window | `Window:SetSize({width, height})` |
+| Window | `Window:SetMinSize({width, height})` |
 | Window | `Window:Toggle()` |
 | Tab | `Tab:AddGroupbox(name, side)` |
 | Groupbox | `Groupbox:AddButton(config)` |
