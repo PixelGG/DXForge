@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.13" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.16" then
     return DXForge
 end
 
@@ -42,6 +42,9 @@ end
 ---@alias DXForgeKeyMode '"Toggle"'|'"Hold"'
 
 ---@class DXForgeTheme
+---@field Base string|nil Optional base theme name when registering a new theme.
+---@field Extends string|nil Optional base theme name when registering a new theme.
+---@field Inherits string|nil Optional base theme name when registering a new theme.
 ---@field FontColor DXForgeColor Main readable text color.
 ---@field MainColor DXForgeColor Primary window surface color.
 ---@field BackgroundColor DXForgeColor Inner content background color.
@@ -148,7 +151,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.13",
+    __DXFORGE_VERSION = "1.0.16",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -588,6 +591,24 @@ local function splitLines(text)
     return lines
 end
 
+local function inferThemeKey(text)
+    local lowered = string.lower(tostring(text or ""))
+    if string.find(lowered, "accent", 1, true) then return "AccentColor" end
+    if string.find(lowered, "primary", 1, true) or string.find(lowered, "main", 1, true) then return "MainColor" end
+    if string.find(lowered, "background", 1, true) or string.find(lowered, "backdrop", 1, true) then return "BackgroundColor" end
+    if string.find(lowered, "panel", 1, true) or string.find(lowered, "surface", 1, true) then return "PanelColor" end
+    if string.find(lowered, "outline", 1, true) or string.find(lowered, "border", 1, true) then return "OutlineColor" end
+    if string.find(lowered, "glow", 1, true) then return "GlowColor" end
+    if string.find(lowered, "font", 1, true) or string.find(lowered, "text", 1, true) then return "FontColor" end
+    if string.find(lowered, "hover", 1, true) then return "HoverColor" end
+    return nil
+end
+
+local function looksLikeThemeSelector(text)
+    local lowered = string.lower(tostring(text or ""))
+    return string.find(lowered, "theme", 1, true) ~= nil
+end
+
 --// Theme System --------------------------------------------------------------
 
 DXForge.Themes.Default = {
@@ -619,6 +640,33 @@ DXForge.Themes.Default = {
     TextHeaderColor = {255, 255, 255}
 }
 
+local function cloneTheme(theme)
+    local clone = {}
+    for key, value in pairs(theme or {}) do
+        clone[key] = copyColor(value)
+    end
+    return clone
+end
+
+DXForge.Themes.Dark = cloneTheme(DXForge.Themes.Default)
+
+function DXForge:ResolveThemeName(name)
+    name = tostring(name or self.ActiveTheme or "Default")
+    if self.Themes[name] then return name end
+
+    local lowered = string.lower(name)
+    if lowered == "dark" then return "Dark" end
+    if lowered == "default" then return "Default" end
+
+    for themeName in pairs(self.Themes) do
+        if string.lower(themeName) == lowered then
+            return themeName
+        end
+    end
+
+    return nil
+end
+
 --[[
     Registers a reusable DXForge theme.
 
@@ -636,17 +684,114 @@ function DXForge:RegisterTheme(name, values)
     assertType("RegisterTheme.name", name, "string")
     assertType("RegisterTheme.values", values, "table")
 
-    local base = self.Themes.Default
+    local baseName = values.Extends or values.Base or values.Inherits
+    local resolvedBase = baseName and self:ResolveThemeName(baseName) or nil
+    local base = self.Themes[resolvedBase or "Default"] or self.Themes.Default
     local theme = {}
     for key, value in pairs(base) do
         theme[key] = copyColor(value)
     end
     for key, value in pairs(values) do
-        theme[key] = normalizeColor(value, base[key])
+        if key ~= "Extends" and key ~= "Base" and key ~= "Inherits" then
+            theme[key] = normalizeColor(value, base[key])
+        end
     end
 
     self.Themes[name] = theme
     return self
+end
+
+--[[
+    Creates a reusable custom theme.
+
+    This is a friendly alias for RegisterTheme. Pass partial values and DXForge
+    fills missing tokens from Default or from `Base` / `Extends`.
+
+    @param name string
+        New theme name.
+    @param values table
+        Theme tokens. Optional `Base`, `Extends`, or `Inherits` selects a base theme.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param name string
+---@param values table<string, DXForgeColor>
+---@return DXForge
+function DXForge:CreateTheme(name, values)
+    return self:RegisterTheme(name, values or {})
+end
+
+--[[
+    Updates an existing theme with partial color tokens.
+
+    @param name string
+        Existing theme name.
+    @param values table
+        Partial theme tokens to overwrite.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param name string
+---@param values table<string, DXForgeColor>
+---@return DXForge
+function DXForge:UpdateTheme(name, values)
+    assertType("UpdateTheme.values", values, "table")
+    local resolved = self:ResolveThemeName(name)
+    if not resolved then
+        return self:RegisterTheme(tostring(name or "Custom"), values)
+    end
+
+    local theme = self.Themes[resolved]
+    for key, value in pairs(values) do
+        theme[key] = normalizeColor(value, theme[key])
+    end
+    return self
+end
+
+--[[
+    Updates one color token on the active theme.
+
+    @param key string
+        Theme token name, such as "AccentColor".
+    @param color table
+        RGB/RGBA color table.
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param key string
+---@param color DXForgeColor
+---@return DXForge
+function DXForge:SetThemeColor(key, color)
+    assertType("SetThemeColor.key", key, "string")
+    local theme = self:GetTheme()
+    if not theme[key] then
+        if self.Debug then print("[DXForge] Unknown theme color: " .. tostring(key)) end
+        return self
+    end
+
+    theme[key] = normalizeColor(color, theme[key])
+    if key == "AccentColor" then
+        theme.GlowColor = blend(theme.AccentColor, {255, 255, 255}, 0.18)
+        theme.AccentDimColor = blend(theme.AccentColor, theme.BackgroundColor, 0.68)
+        theme.AccentSoftColor = blend(theme.AccentColor, theme.PanelColor, 0.42)
+    end
+    return self
+end
+
+--[[
+    Returns all registered theme names.
+
+    @return table
+        Array of theme names.
+]]
+---@return table
+function DXForge:GetThemeNames()
+    local names = {}
+    for name in pairs(self.Themes) do
+        table.insert(names, name)
+    end
+    table.sort(names)
+    return names
 end
 
 --[[
@@ -660,10 +805,17 @@ end
 ---@param name string
 ---@return DXForge
 function DXForge:SetTheme(name)
-    assert(self.Themes[name], "[DXForge] Unknown theme: " .. tostring(name))
-    self.ActiveTheme = name
+    local resolved = self:ResolveThemeName(name)
+    if not resolved then
+        if self.Debug then
+            print("[DXForge] Unknown theme: " .. tostring(name))
+        end
+        return self
+    end
+
+    self.ActiveTheme = resolved
     for _, window in ipairs(self.Windows) do
-        window.ThemeName = name
+        window.ThemeName = resolved
     end
     return self
 end
@@ -679,7 +831,8 @@ end
 ---@param name string|nil
 ---@return DXForgeTheme
 function DXForge:GetTheme(name)
-    return self.Themes[name or self.ActiveTheme] or self.Themes.Default
+    local resolved = self:ResolveThemeName(name or self.ActiveTheme)
+    return self.Themes[resolved or "Default"] or self.Themes.Default
 end
 
 --// Render Utilities ----------------------------------------------------------
@@ -1200,6 +1353,22 @@ function DXForge.AssetLoader:drawLogo(x, y, w, h, color)
     return false, logo.Status
 end
 
+function DXForge.AssetLoader:releaseStartupLogo()
+    local logo = DXForge.Logo
+    logo.Asset = nil
+    logo.Loaded = false
+    logo.Failed = false
+    logo.Prepared = false
+    logo.Status = "released"
+    logo.Attempts = {}
+    logo.ActiveSource = nil
+
+    if DXForge.EmbeddedLogo then
+        DXForge.EmbeddedLogo.Runs = nil
+        DXForge.EmbeddedLogo.PreparedRuns = false
+    end
+end
+
 --// Input System --------------------------------------------------------------
 
 local Input = {
@@ -1641,6 +1810,9 @@ function Dropdown:setSelected(value)
         self.Selected = value
         self.Open = false
         DXForge.Runtime.PopupOwner = nil
+        if looksLikeThemeSelector(self.Text) then
+            DXForge:SetTheme(value)
+        end
         safeCall("Dropdown:" .. self.Text, self.Callback, self.Selected)
     end
 end
@@ -1885,12 +2057,14 @@ ColorPicker.__index = ColorPicker
 
 function ColorPicker:new(groupbox, config)
     local object = Component.new(self, "ColorPicker", groupbox, config)
-    object.Value = normalizeColor(config.Default, DXForge:GetTheme().AccentColor)
+    local inferredThemeKey = config.ThemeKey or config.ApplyThemeKey or inferThemeKey(object.Text)
+    object.ThemeKey = config.ThemeKey or config.ApplyThemeKey or ((config.ApplyToTheme == true or config.ApplyTheme == true or config.Theme == true) and (inferredThemeKey or "AccentColor") or inferredThemeKey)
+    local themeDefault = object.ThemeKey and DXForge:GetTheme()[object.ThemeKey] or DXForge:GetTheme().AccentColor
+    object.Value = normalizeColor(config.Default, themeDefault)
     object.Hue, object.Sat, object.Val = rgbToHsv(object.Value)
     object.Alpha = object.Value[4] or 255
     object.Open = false
     object.WithAlpha = config.Alpha == true
-    object.ThemeKey = config.ThemeKey or config.ApplyThemeKey or ((config.ApplyToTheme == true or config.ApplyTheme == true or config.Theme == true) and "AccentColor" or nil)
     object.Height = 34
     return object
 end
@@ -1904,6 +2078,13 @@ function ColorPicker:applyThemeColor()
         theme.GlowColor = blend(theme.AccentColor, {255, 255, 255}, 0.18)
         theme.AccentDimColor = blend(theme.AccentColor, theme.BackgroundColor, 0.68)
         theme.AccentSoftColor = blend(theme.AccentColor, theme.PanelColor, 0.42)
+    elseif self.ThemeKey == "MainColor" then
+        theme.WindowColor = copyColor(theme.MainColor)
+        theme.HeaderColor = blend(theme.MainColor, {44, 46, 58}, 0.45)
+        theme.HeaderDarkColor = blend(theme.MainColor, {5, 6, 9}, 0.45)
+        theme.SurfaceColor = blend(theme.MainColor, {28, 30, 38}, 0.5)
+        theme.SurfaceDarkColor = blend(theme.MainColor, {3, 4, 7}, 0.55)
+        theme.PanelColor = blend(theme.MainColor, {28, 30, 40}, 0.5)
     end
 end
 
@@ -2851,16 +3032,27 @@ DXForge:SetWatermark({Text = "DXForge", Visible = true, Position = {12, 12}})
 
 function DXForge:renderWatermark(theme)
     if not self.Watermark or not self.Watermark.Visible then return end
-    local text = self.Watermark.Text
+    local text = tostring(self.Watermark.Text or "")
     local x, y = self.Watermark.Position[1], self.Watermark.Position[2]
-    local w = Render.textWidth(text) + 34
-    Render.filled({x + 4, y + 5}, {x + w + 4, y + 31}, theme.ShadowColor)
-    Render.filled({x, y}, {x + w, y + 28}, theme.BorderStrongColor or theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + 27}, theme.SurfaceDarkColor or theme.PanelColor)
+    local iconW = 20
+    local paddingX = 12
+    local textX = x + paddingX + iconW + 8
+    local textPadRight = 14
+    local textWidth = Render.textWidth(text)
+    local w = math.max(96, math.ceil(textWidth + iconW + paddingX + textPadRight + 18))
+    local h = 30
+
+    Render.filled({x + 4, y + 5}, {x + w + 4, y + h + 5}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or theme.PanelColor)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
-    Render.filled({x + 8, y + 10}, {x + 13, y + 16}, theme.AccentColor)
-    Render.filled({x + 16, y + 12}, {x + 34, y + 13}, theme.AccentDimColor or theme.AccentColor)
-    Render.text({x + 38, y + 7}, theme.FontColor, text)
+    Render.filled({x + 2, y + h - 3}, {x + math.min(w - 2, 72), y + h - 2}, theme.GlowColor)
+    Render.filled({x + paddingX, y + 10}, {x + paddingX + 6, y + 16}, theme.AccentColor)
+    Render.filled({x + paddingX + 10, y + 12}, {x + paddingX + iconW, y + 13}, theme.AccentDimColor or theme.AccentColor)
+
+    Render.PushClipRect(textX, y + 4, w - (textX - x) - textPadRight, h - 8)
+    Render.text({textX, y + 8}, theme.FontColor, Render.trimText(text, w - (textX - x) - textPadRight))
+    Render.PopClipRect()
 end
 
 --// Startup Screen ------------------------------------------------------------
@@ -2946,6 +3138,8 @@ function DXForge:renderStartup(theme)
         startup.Done = true
         self.Runtime.StartupCompleted = true
         if startup.Window then startup.Window.Visible = true end
+        self.AssetLoader:releaseStartupLogo()
+        self.Startup = nil
         return false
     end
 

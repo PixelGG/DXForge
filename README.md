@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=B254FF" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-1.0.13-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.16-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="License" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Author" />
 </p>
@@ -134,8 +134,11 @@ DXForge:Render()
 | Core | `DXForge:CreateWindow(config)` |
 | Core | `DXForge:Render()` |
 | Core | `DXForge:Notify(config)` |
+| Core | `DXForge:CreateTheme(name, values)` |
 | Core | `DXForge:RegisterTheme(name, values)` |
 | Core | `DXForge:SetTheme(name)` |
+| Core | `DXForge:SetThemeColor(key, color)` |
+| Core | `DXForge:GetThemeNames()` |
 | Window | `Window:AddTab(name)` |
 | Window | `Window:SetOpen(value)` |
 | Window | `Window:Resize(width, height)` |
@@ -172,7 +175,8 @@ DXForge:Render()
 ## Theme Example
 
 ```lua
-DXForge:RegisterTheme("VioletSteel", {
+DXForge:CreateTheme("VioletSteel", {
+    Base = "Dark",
     FontColor = {238, 238, 246},
     MainColor = {18, 19, 24},
     BackgroundColor = {8, 9, 13},

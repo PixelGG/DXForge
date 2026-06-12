@@ -126,7 +126,7 @@ Box:AddColorPicker({
 })
 ```
 
-Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token.
+Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token. Color pickers named like `Primary Color` and `Accent Color` also infer `MainColor` and `AccentColor` automatically.
 
 ## Tooltips
 

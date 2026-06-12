@@ -38,7 +38,8 @@
 ## Register A Theme
 
 ```lua
-DXForge:RegisterTheme("VioletSteel", {
+DXForge:CreateTheme("VioletSteel", {
+    Base = "Dark",
     FontColor = {238, 238, 246},
     MainColor = {18, 19, 24},
     BackgroundColor = {8, 9, 13},
@@ -68,6 +69,20 @@ DXForge:RegisterTheme("VioletSteel", {
 })
 
 DXForge:SetTheme("VioletSteel")
+```
+
+`CreateTheme` and `RegisterTheme` accept partial token tables. Missing values are inherited from `Default` or from `Base` / `Extends`.
+
+```lua
+DXForge:CreateTheme("Ocean", {
+    Base = "Dark",
+    AccentColor = {80, 180, 255},
+    GlowColor = {90, 210, 255}
+})
+
+DXForge:SetThemeColor("AccentColor", {210, 92, 255})
+
+local themes = DXForge:GetThemeNames()
 ```
 
 ## Per-Window Theme
