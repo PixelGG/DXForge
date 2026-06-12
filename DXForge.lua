@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.11" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.12" then
     return DXForge
 end
 
@@ -145,7 +145,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.11",
+    __DXFORGE_VERSION = "1.0.12",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -918,6 +918,50 @@ function Render.valuePill(x, y, w, h, text, theme, active)
     Render.text({x + 7, y + 5}, active and theme.FontColor or theme.TextMutedColor, Render.trimText(text, w - 14))
 end
 
+function Render.prepareEmbeddedLogoRuns(logo)
+    if logo.PreparedRuns then
+        return logo.Runs
+    end
+
+    logo.PreparedRuns = true
+    logo.Runs = {}
+
+    local indexMap = logo.IndexMap or "0123456789ABCDEF"
+    local lookup = {}
+    for index = 1, #indexMap do
+        lookup[string.sub(indexMap, index, index)] = index - 1
+    end
+
+    for rowIndex, row in ipairs(logo.Rows or {}) do
+        local rowRuns = {}
+        local column = 1
+        local width = logo.Width or #row
+
+        while column <= width do
+            local indexChar = string.sub(row, column, column)
+            local paletteIndex = lookup[indexChar]
+            local runStart = column
+
+            repeat
+                column = column + 1
+            until column > width or string.sub(row, column, column) ~= indexChar
+
+            local color = paletteIndex and logo.Palette and logo.Palette[paletteIndex + 1]
+            if color and paletteIndex > 0 then
+                table.insert(rowRuns, {
+                    Start = runStart,
+                    Stop = column - 1,
+                    Color = color
+                })
+            end
+        end
+
+        logo.Runs[rowIndex] = rowRuns
+    end
+
+    return logo.Runs
+end
+
 function Render.embeddedLogo(x, y, w, h, theme)
     local logo = DXForge.EmbeddedLogo
     if not logo or type(logo.Rows) ~= "table" then
@@ -931,20 +975,14 @@ function Render.embeddedLogo(x, y, w, h, theme)
     Render.filled({drawX - 2, drawY - 2}, {drawX + drawW + 2, drawY + drawH + 2}, theme.ShadowColor)
     Render.filled({drawX - 1, drawY - 1}, {drawX + drawW + 1, drawY + drawH + 1}, theme.AccentDimColor or theme.OutlineColor)
 
-    local indexMap = logo.IndexMap or "0123456789ABCDEF"
-    for rowIndex, row in ipairs(logo.Rows) do
+    local runs = Render.prepareEmbeddedLogoRuns(logo)
+    for rowIndex, rowRuns in ipairs(runs) do
         local py1 = drawY + (rowIndex - 1) * cellH
         local py2 = drawY + rowIndex * cellH + 0.75
-        for column = 1, logo.Width do
-            local indexChar = string.sub(row, column, column)
-            local mapPosition = string.find(indexMap, indexChar, 1, true)
-            local paletteIndex = mapPosition and (mapPosition - 1) or nil
-            local color = paletteIndex and logo.Palette and logo.Palette[paletteIndex + 1]
-            if color and paletteIndex > 0 then
-                local px1 = drawX + (column - 1) * cellW
-                local px2 = drawX + column * cellW + 0.75
-                Render.filled({px1, py1}, {px2, py2}, color)
-            end
+        for _, run in ipairs(rowRuns) do
+            local px1 = drawX + (run.Start - 1) * cellW
+            local px2 = drawX + run.Stop * cellW + 0.75
+            Render.filled({px1, py1}, {px2, py2}, run.Color)
         end
     end
 
