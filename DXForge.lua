@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.12" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.13" then
     return DXForge
 end
 
@@ -122,6 +122,9 @@ end
 ---@class DXForgeColorPickerConfig: DXForgeBaseComponentConfig
 ---@field Default DXForgeColor|nil Initial color.
 ---@field Alpha boolean|nil Enables alpha-aware color storage.
+---@field ApplyToTheme boolean|nil Applies the selected color to the active theme AccentColor.
+---@field ApplyTheme boolean|nil Alias for ApplyToTheme.
+---@field ThemeKey string|nil Theme token to update, for example "AccentColor" or "GlowColor".
 
 ---@class DXForgeNotificationConfig
 ---@field Text string Notification text. Supports newline characters.
@@ -145,7 +148,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.12",
+    __DXFORGE_VERSION = "1.0.13",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -659,6 +662,9 @@ end
 function DXForge:SetTheme(name)
     assert(self.Themes[name], "[DXForge] Unknown theme: " .. tostring(name))
     self.ActiveTheme = name
+    for _, window in ipairs(self.Windows) do
+        window.ThemeName = name
+    end
     return self
 end
 
@@ -1605,6 +1611,8 @@ function Dropdown:new(groupbox, config, multi)
     object.Open = false
     object.Height = 32
     object.Selected = object.Multi and {} or (config.Default or object.Values[1])
+    object.ScrollIndex = 1
+    object.ScrollDragging = false
     if object.Multi and type(config.Default) == "table" then
         for _, value in pairs(config.Default) do object.Selected[value] = true end
     end
@@ -1670,21 +1678,56 @@ function Dropdown:render(theme)
         Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, theme.SurfaceDarkColor or {7, 8, 12})
         Render.filled({bx + 2, by + bh + 3}, {bx + bw - 2, by + bh + 4}, theme.AccentColor)
         if self.Open then
-            Input:claim(self.Id)
+            local maxScrollIndex = math.max(1, #self.Values - visibleCount + 1)
+            self.ScrollIndex = clamp(self.ScrollIndex or 1, 1, maxScrollIndex)
+
+            if #self.Values > visibleCount then
+                local trackX = bx + bw - 9
+                local trackY = by + bh + 8
+                local trackH = visibleCount * itemHeight - 10
+                local thumbH = clamp((visibleCount / #self.Values) * trackH, 16, trackH)
+                local travel = math.max(1, trackH - thumbH)
+                local thumbY = trackY + ((self.ScrollIndex - 1) / math.max(1, maxScrollIndex - 1)) * travel
+                local scrollId = self.Id .. ":dropdown-scroll"
+
+                if Input:clicked(scrollId, trackX - 4, trackY, 10, trackH) then
+                    self.ScrollDragging = true
+                    local target = clamp(Input.Mouse.y - trackY - thumbH / 2, 0, travel)
+                    self.ScrollIndex = math.floor((target / travel) * (maxScrollIndex - 1) + 1.5)
+                end
+
+                if self.ScrollDragging and Input.MouseDown then
+                    Input:claim(scrollId)
+                    local target = clamp(Input.Mouse.y - trackY - thumbH / 2, 0, travel)
+                    self.ScrollIndex = math.floor((target / travel) * (maxScrollIndex - 1) + 1.5)
+                    self.ScrollIndex = clamp(self.ScrollIndex, 1, maxScrollIndex)
+                    thumbY = trackY + ((self.ScrollIndex - 1) / math.max(1, maxScrollIndex - 1)) * travel
+                elseif self.ScrollDragging and not Input.MouseDown then
+                    self.ScrollDragging = false
+                end
+                Input:release(scrollId)
+
+                Render.filled({trackX, trackY}, {trackX + 4, trackY + trackH}, theme.BorderSoftColor or theme.OutlineColor)
+                Render.filled({trackX - 1, thumbY}, {trackX + 5, thumbY + thumbH}, self.ScrollDragging and theme.AccentColor or theme.GlowColor)
+            end
+
             for index = 1, visibleCount do
-                local value = self.Values[index]
+                local valueIndex = (self.ScrollIndex or 1) + index - 1
+                local value = self.Values[valueIndex]
+                if value == nil then break end
                 local iy = by + bh + 3 + (index - 1) * itemHeight
-                local itemId = self.Id .. ":item:" .. tostring(index)
-                local hovered = Input:hover(bx + 1, iy, bw - 2, itemHeight)
+                local itemId = self.Id .. ":item:" .. tostring(valueIndex)
+                local itemW = #self.Values > visibleCount and (bw - 12) or (bw - 2)
+                local hovered = Input:hover(bx + 1, iy, itemW, itemHeight)
                 local selected = self.Multi and self.Selected[value] or self.Selected == value
                 if hovered then
-                    Render.filled({bx + 2, iy}, {bx + bw - 2, iy + itemHeight}, theme.HoverColor)
+                    Render.filled({bx + 2, iy}, {bx + itemW, iy + itemHeight}, theme.HoverColor)
                 end
                 if selected then
                     Render.filled({bx + 3, iy + 3}, {bx + 5, iy + itemHeight - 3}, theme.AccentColor)
                 end
-                Render.text({bx + 11, iy + 4}, selected and theme.AccentColor or theme.FontColor, Render.trimText(tostring(value), bw - 20))
-                if Input:clicked(itemId, bx + 1, iy, bw - 2, itemHeight) then
+                Render.text({bx + 11, iy + 4}, selected and theme.AccentColor or theme.FontColor, Render.trimText(tostring(value), itemW - 20))
+                if Input:clicked(itemId, bx + 1, iy, itemW, itemHeight) then
                     self:setSelected(value)
                 end
                 Input:release(itemId)
@@ -1745,10 +1788,10 @@ function Textbox:render(theme)
 
     if self.ClippedVisible and Input.FocusText == self and Input.KeyPressed then
         local key = Input.Key
-        if key == "[ENTER]" then
+        if key == "[ENTER]" or key == "[RETURN]" then
             Input.FocusText = nil
             safeCall("Textbox:" .. self.Text, self.Callback, self.Value)
-        elseif key == "[BACKSPACE]" then
+        elseif key == "[BACKSPACE]" or key == "[BACK]" then
             self.Value = string.sub(self.Value, 1, math.max(0, #self.Value - 1))
             safeCall("Textbox:" .. self.Text, self.Callback, self.Value)
         elseif key == "[ESCAPE]" then
@@ -1772,7 +1815,8 @@ Keybind.__index = Keybind
 function Keybind:new(groupbox, config)
     local object = Component.new(self, "Keybind", groupbox, config)
     object.Key = tostring(config.Default or "[None]")
-    object.Mode = tostring(config.Mode or "Toggle")
+    local mode = tostring(config.Mode or "Toggle"):lower()
+    object.Mode = mode == "hold" and "Hold" or "Toggle"
     object.Reading = false
     object.State = false
     object.Height = config.Height or 32
@@ -1846,14 +1890,28 @@ function ColorPicker:new(groupbox, config)
     object.Alpha = object.Value[4] or 255
     object.Open = false
     object.WithAlpha = config.Alpha == true
+    object.ThemeKey = config.ThemeKey or config.ApplyThemeKey or ((config.ApplyToTheme == true or config.ApplyTheme == true or config.Theme == true) and "AccentColor" or nil)
     object.Height = 34
     return object
+end
+
+function ColorPicker:applyThemeColor()
+    if not self.ThemeKey then return end
+    local theme = DXForge:GetTheme()
+    if not theme[self.ThemeKey] then return end
+    theme[self.ThemeKey] = normalizeColor(self.Value, theme[self.ThemeKey])
+    if self.ThemeKey == "AccentColor" then
+        theme.GlowColor = blend(theme.AccentColor, {255, 255, 255}, 0.18)
+        theme.AccentDimColor = blend(theme.AccentColor, theme.BackgroundColor, 0.68)
+        theme.AccentSoftColor = blend(theme.AccentColor, theme.PanelColor, 0.42)
+    end
 end
 
 function ColorPicker:SetColor(color, silent)
     self.Value = normalizeColor(color, self.Value)
     self.Hue, self.Sat, self.Val = rgbToHsv(self.Value)
     self.Alpha = self.Value[4] or self.Alpha
+    self:applyThemeColor()
     if not silent then safeCall("ColorPicker:" .. self.Text, self.Callback, self.Value) end
     return self
 end
@@ -1862,6 +1920,7 @@ function ColorPicker:updateColor(silent)
     local rgb = hsvToRgb(self.Hue, self.Sat, self.Val)
     rgb[4] = self.Alpha
     self.Value = rgb
+    self:applyThemeColor()
     if not silent then safeCall("ColorPicker:" .. self.Text, self.Callback, self.Value) end
 end
 
@@ -2268,6 +2327,8 @@ function Tab:render(theme, x, y, w, h)
             leftY = leftY + gh + gutter
         end
     end
+
+    return math.max(leftY, rightY, fullY) - y
 end
 
 --// Window System -------------------------------------------------------------
@@ -2302,6 +2363,10 @@ function Window:new(config)
         ActiveTab = nil,
         Dragging = false,
         Resizing = false,
+        ScrollY = 0,
+        MaxScroll = 0,
+        ScrollDragging = false,
+        ScrollDragOffset = 0,
         DragOffset = {0, 0},
         ZIndex = DXForge.Runtime.ZCounter,
         Alpha = 1,
@@ -2530,6 +2595,53 @@ function Window:renderFooter(theme)
     Render.text({x + w - Render.textWidth(keyText) - 14, footerY + 6}, theme.TextMutedColor, keyText)
 end
 
+function Window:renderContentScroll(theme, cx, cy, cw, ch, contentHeight)
+    local maxScroll = math.max(0, (contentHeight or 0) - ch)
+    self.MaxScroll = maxScroll
+    self.ScrollY = clamp(self.ScrollY or 0, 0, maxScroll)
+
+    if maxScroll <= 1 then
+        self.ScrollDragging = false
+        return
+    end
+
+    local trackX = cx + cw - 9
+    local trackY = cy + 9
+    local trackW = 5
+    local trackH = ch - 18
+    local thumbH = clamp((ch / math.max(contentHeight, ch)) * trackH, 34, trackH)
+    local travel = math.max(1, trackH - thumbH)
+    local thumbY = trackY + (self.ScrollY / maxScroll) * travel
+    local id = self.Id .. ":content-scroll"
+
+    if Input:clicked(id, trackX - 5, trackY, trackW + 10, trackH) then
+        self.ScrollDragging = true
+        if Input.Mouse.y >= thumbY and Input.Mouse.y <= thumbY + thumbH then
+            self.ScrollDragOffset = Input.Mouse.y - thumbY
+        else
+            self.ScrollDragOffset = thumbH / 2
+            local target = clamp(Input.Mouse.y - trackY - self.ScrollDragOffset, 0, travel)
+            self.ScrollY = clamp((target / travel) * maxScroll, 0, maxScroll)
+        end
+    end
+
+    if self.ScrollDragging and Input.MouseDown then
+        Input:claim(id)
+        local target = clamp(Input.Mouse.y - trackY - (self.ScrollDragOffset or 0), 0, travel)
+        self.ScrollY = clamp((target / travel) * maxScroll, 0, maxScroll)
+        thumbY = trackY + (self.ScrollY / maxScroll) * travel
+    elseif self.ScrollDragging and not Input.MouseDown then
+        self.ScrollDragging = false
+    end
+    Input:release(id)
+
+    local hovered = Input:hover(trackX - 5, trackY, trackW + 10, trackH)
+    Render.filled({trackX, trackY}, {trackX + trackW, trackY + trackH}, theme.SurfaceDarkColor or {8, 9, 13})
+    Render.filled({trackX + 1, trackY + 1}, {trackX + trackW - 1, trackY + trackH - 1}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({trackX - 1, thumbY}, {trackX + trackW + 1, thumbY + thumbH}, self.ScrollDragging and theme.GlowColor or (hovered and theme.AccentColor or theme.AccentDimColor))
+    Render.filled({trackX, thumbY + 2}, {trackX + trackW, thumbY + thumbH - 2}, self.ScrollDragging and theme.AccentColor or theme.GlowColor)
+end
+
 function Window:render()
     local theme = DXForge:GetTheme(self.ThemeName)
     self:handleInput(theme)
@@ -2556,10 +2668,13 @@ function Window:render()
     Render.PushClipRect(cx, cy, cw, ch)
     Render.contentTexture(cx, cy, cw, ch, theme)
 
+    local contentHeight = 0
     if self.ActiveTab then
-        self.ActiveTab:render(theme, cx + 14, cy + 15, cw - 28, ch - 30)
+        contentHeight = self.ActiveTab:render(theme, cx + 14, cy + 15 - (self.ScrollY or 0), cw - 34, ch - 30)
     end
     Render.PopClipRect()
+
+    self:renderContentScroll(theme, cx, cy, cw, ch, contentHeight + 30)
 
     if self.Resizable then
         Render.filled({x + w - 27, y + h - 27}, {x + w - 7, y + h - 7}, theme.SurfaceDarkColor or {9, 10, 15})

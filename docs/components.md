@@ -118,12 +118,15 @@ Modes:
 Box:AddColorPicker({
     Text = "Accent Color",
     Default = {180, 70, 255},
+    ApplyToTheme = true,
     Tooltip = "Pick a menu accent color.",
     Callback = function(color)
         print(color[1], color[2], color[3])
     end
 })
 ```
+
+Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token.
 
 ## Tooltips
 
@@ -136,4 +139,3 @@ Box:AddToggle({
     Callback = function(value) end
 })
 ```
-
