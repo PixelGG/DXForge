@@ -40,6 +40,12 @@
 
 DXForge is built for clean overlay interfaces: tight spacing, restrained dark surfaces, neon-purple accents, readable typography, and consistent motion. The docs follow the same idea: fast to scan, practical, and focused on what you need while building.
 
+## Project Info
+
+- Version: `1.0.8`
+- Maintainer: `PixelGG`
+- License: MIT, copyright `2026 PixelGG`
+
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=80&section=footer&color=0:14151C,55:B254FF,100:090A0F&animation=fadeIn" alt="DXForge docs footer" width="100%" />
 </p>

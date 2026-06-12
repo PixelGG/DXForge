@@ -7,7 +7,7 @@
 
     Recommended usage:
 
-        local DXForge = _G.DXForge or loadstring(dx9.Get(".../DXForge.lua"))()
+        local DXForge = _G.DXForge or dofile("DXForge.lua")
 
         local Window = DXForge:CreateWindow({
             Title = "DXForge Example",
@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.7" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.8" then
     return DXForge
 end
 
@@ -145,7 +145,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.7",
+    __DXFORGE_VERSION = "1.0.8",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",

@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=B254FF" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-1.0.7-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.8-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="License" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Author" />
 </p>
@@ -60,7 +60,7 @@ Watermark       Theme System    Startup Screen
 ## Install
 
 ```lua
-local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or dofile("DXForge.lua")
 ```
 
 DX9WARE runs Lua automatically every frame, so cache the library through `_G.DXForge` and call `DXForge:Render()` once per frame/script tick.
@@ -68,7 +68,7 @@ DX9WARE runs Lua automatically every frame, so cache the library through `_G.DXF
 ## Quick Start
 
 ```lua
-local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or dofile("DXForge.lua")
 
 local Window = DXForge:CreateWindow({
     Title = "DXForge Example",

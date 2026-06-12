@@ -22,6 +22,18 @@
 | `PanelColor` | Control backgrounds. |
 | `TextMutedColor` | Secondary text. |
 | `GlowColor` | Startup and energy highlights. |
+| `WindowColor` | Outer window fill. |
+| `HeaderColor` | Premium header surface. |
+| `HeaderDarkColor` | Dark header and footer surface. |
+| `SurfaceColor` | Elevated component surface. |
+| `SurfaceLightColor` | Top highlight lines. |
+| `SurfaceDarkColor` | Recessed surfaces. |
+| `BorderSoftColor` | Subtle rails and separators. |
+| `BorderStrongColor` | High-emphasis outer borders. |
+| `AccentSoftColor` | Soft accent glow. |
+| `AccentDimColor` | Muted accent rails. |
+| `ActiveColor` | Active control fill. |
+| `TextHeaderColor` | High-emphasis header text. |
 
 ## Register A Theme
 
@@ -40,7 +52,19 @@ DXForge:RegisterTheme("VioletSteel", {
     HoverColor = {35, 36, 45},
     PanelColor = {25, 26, 34},
     TextMutedColor = {150, 152, 166},
-    GlowColor = {145, 60, 255}
+    GlowColor = {145, 60, 255},
+    WindowColor = {10, 11, 16},
+    HeaderColor = {24, 26, 36},
+    HeaderDarkColor = {14, 15, 21},
+    SurfaceColor = {18, 20, 28},
+    SurfaceLightColor = {31, 34, 45},
+    SurfaceDarkColor = {9, 10, 15},
+    BorderSoftColor = {37, 40, 52},
+    BorderStrongColor = {78, 82, 100},
+    AccentSoftColor = {86, 45, 135},
+    AccentDimColor = {43, 28, 64},
+    ActiveColor = {39, 27, 55},
+    TextHeaderColor = {255, 255, 255}
 })
 
 DXForge:SetTheme("VioletSteel")
@@ -58,4 +82,3 @@ local Window = DXForge:CreateWindow({
 ## Styling Guidance
 
 Keep the main surfaces dark, outlines visible, and accent color reserved for active states. DXForge looks best when the accent is special, not everywhere.
-
