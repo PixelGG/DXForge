@@ -60,15 +60,15 @@ Watermark       Theme System    Startup Screen
 ## Install
 
 ```lua
-local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
 ```
 
-For local development, load `DXForge.lua` from your DX9 Lua environment and call `DXForge:Render()` once per frame/script tick.
+DX9WARE runs Lua automatically every frame, so cache the library through `_G.DXForge` and call `DXForge:Render()` once per frame/script tick.
 
 ## Quick Start
 
 ```lua
-local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
 
 local Window = DXForge:CreateWindow({
     Title = "DXForge Example",

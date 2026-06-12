@@ -6,7 +6,9 @@
 
 ## Required DX9 Functions
 
-DXForge is written around the common Cult-of-Intellect-style DX9 Lua API surface:
+DXForge is written for DX9WARE's vanilla Lua 5.1.4 environment with the additional `dx9` library. It is not a Roblox Executor/Luau UI library and does not use `game:HttpGet`, Roblox `Instance`, or Roblox GUI APIs.
+
+DXForge uses this Cult-of-Intellect-style DX9 Lua API surface:
 
 | Function | Used for |
 | --- | --- |
@@ -25,7 +27,22 @@ DXForge is written around the common Cult-of-Intellect-style DX9 Lua API surface
 | Function | Fallback |
 | --- | --- |
 | `dx9.DrawImage(...)` | Startup logo falls back to text branding. |
-| `dx9.Get(url)` | Remote logo loading is skipped if unavailable or incompatible. |
+| `dx9.Get(url)` | Used for remote script/logo loading; logo loading is skipped if unavailable or incompatible. |
+
+## Correct Loading Pattern
+
+DX9WARE:
+
+```lua
+local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+```
+
+Roblox executor style is not compatible with DX9WARE:
+
+```lua
+-- Do not use this in DX9WARE.
+local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+```
 
 ## Compatibility Notes
 
@@ -44,3 +61,11 @@ print(dx9.GetKey())
 ```
 
 If those functions work in your environment, the core DXForge UI path should render.
+
+## Official References
+
+- [DX9WARE Lua Introduction](https://docs.cultofintellect.com/DX9WARE/Lua/Introduction/)
+- [Drawing Functions](https://docs.cultofintellect.com/DX9WARE/Lua/DrawingFunctions/)
+- [General Functions](https://docs.cultofintellect.com/DX9WARE/Lua/GeneralFunctions/)
+- [Get Functions](https://docs.cultofintellect.com/DX9WARE/Lua/GetFunctions/)
+- [Mouse Functions](https://docs.cultofintellect.com/DX9WARE/Lua/MouseFunctions/)

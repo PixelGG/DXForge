@@ -11,10 +11,10 @@
 ## Install
 
 ```lua
-local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
 ```
 
-For local testing, load `DXForge.lua` through your DX9 Lua environment.
+For local testing, paste `DXForge.lua` into the DX9WARE Lua tab or load it through `dx9.Get`.
 
 ## Create Your First Window
 
@@ -75,7 +75,7 @@ If your environment runs the script repeatedly every frame, place UI creation be
 ## Minimal Complete Example
 
 ```lua
-local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
 
 local Window = DXForge:CreateWindow({
     Title = "DXForge Starter",

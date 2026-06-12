@@ -7,7 +7,7 @@
 
     Recommended usage:
 
-        local DXForge = loadstring(game:HttpGet(".../DXForge.lua"))()
+        local DXForge = _G.DXForge or loadstring(dx9.Get(".../DXForge.lua"))()
 
         local Window = DXForge:CreateWindow({
             Title = "DXForge Example",
