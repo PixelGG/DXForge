@@ -49,6 +49,15 @@ Window:SetSize({640, 480})
 Window:SetMinSize({420, 320})
 ```
 
+## Clipping
+
+DXForge clips rendering and hitboxes through nested container bounds:
+
+- Window bounds clip tabs, content, footer, and resize visuals.
+- Content bounds clip tab groupboxes and controls.
+- Groupbox bounds clip section controls.
+- Controls that are clipped out do not receive hover, click, textbox, dropdown, color picker, or keybind input.
+
 ## Toggle Key
 
 ```lua

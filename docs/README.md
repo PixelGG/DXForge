@@ -42,7 +42,7 @@ DXForge is built for clean overlay interfaces: tight spacing, restrained dark su
 
 ## Project Info
 
-- Version: `1.0.9`
+- Version: `1.0.10`
 - Maintainer: `PixelGG`
 - License: MIT, copyright `2026 PixelGG`
 

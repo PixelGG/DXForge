@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.9" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.10" then
     return DXForge
 end
 
@@ -145,7 +145,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.9",
+    __DXFORGE_VERSION = "1.0.10",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -461,6 +461,7 @@ end
 --// Render Utilities ----------------------------------------------------------
 
 local Render = {}
+Render.ClipStack = {}
 
 local function dxSafeCall(fn, ...)
     if type(fn) ~= "function" then return false, nil end
@@ -481,6 +482,65 @@ local function rectPoints(a, b)
     if y2 < y1 then y1, y2 = y2, y1 end
     return {x1, y1}, {x2, y2}
 end
+
+local function normalizeRect(x, y, w, h)
+    x = math.floor(tonumber(x) or 0)
+    y = math.floor(tonumber(y) or 0)
+    w = math.floor(tonumber(w) or 0)
+    h = math.floor(tonumber(h) or 0)
+    if w < 0 then x, w = x + w, -w end
+    if h < 0 then y, h = y + h, -h end
+    return {x = x, y = y, w = w, h = h}
+end
+
+local function intersectRect(a, b)
+    if not a then return b end
+    if not b then return a end
+    local x1 = math.max(a.x, b.x)
+    local y1 = math.max(a.y, b.y)
+    local x2 = math.min(a.x + a.w, b.x + b.w)
+    local y2 = math.min(a.y + a.h, b.y + b.h)
+    if x2 <= x1 or y2 <= y1 then return {x = 0, y = 0, w = 0, h = 0} end
+    return {x = x1, y = y1, w = x2 - x1, h = y2 - y1}
+end
+
+function Render.currentClip()
+    return Render.ClipStack[#Render.ClipStack]
+end
+
+function Render.PushClipRect(x, y, w, h)
+    local rect = normalizeRect(x, y, w, h)
+    local current = Render.currentClip()
+    if current then rect = intersectRect(current, rect) end
+    table.insert(Render.ClipStack, rect)
+    return rect
+end
+
+function Render.PopClipRect()
+    if #Render.ClipStack > 0 then
+        table.remove(Render.ClipStack)
+    end
+end
+
+function Render.IsInsideClipRect(x, y, w, h)
+    local clip = Render.currentClip()
+    if not clip then return true end
+    local rect = normalizeRect(x, y, w or 1, h or 1)
+    local clipped = intersectRect(clip, rect)
+    return clipped.w > 0 and clipped.h > 0
+end
+
+function Render.ClippedRect(x, y, w, h)
+    local rect = normalizeRect(x, y, w, h)
+    local clip = Render.currentClip()
+    if clip then rect = intersectRect(clip, rect) end
+    if rect.w <= 0 or rect.h <= 0 then return nil end
+    return rect
+end
+
+Render.pushClipRect = Render.PushClipRect
+Render.popClipRect = Render.PopClipRect
+Render.isInsideClipRect = Render.IsInsideClipRect
 
 function Render.screen()
     if dx9 and dx9.size then
@@ -522,31 +582,48 @@ end
 function Render.filled(a, b, color)
     if dx9 and dx9.DrawFilledBox then
         local p1, p2 = rectPoints(a, b)
+        local rect = Render.ClippedRect(p1[1], p1[2], p2[1] - p1[1], p2[2] - p1[2])
+        if not rect then return end
+        p1, p2 = {rect.x, rect.y}, {rect.x + rect.w, rect.y + rect.h}
         dxSafeCall(dx9.DrawFilledBox, p1, p2, copyColor(color))
     end
 end
 
 function Render.box(a, b, color)
-    if dx9 and dx9.DrawBox then
-        local p1, p2 = rectPoints(a, b)
-        dxSafeCall(dx9.DrawBox, p1, p2, copyColor(color))
-    else
-        Render.filled(a, {b[1], a[2] + 1}, color)
-        Render.filled({a[1], b[2] - 1}, b, color)
-        Render.filled(a, {a[1] + 1, b[2]}, color)
-        Render.filled({b[1] - 1, a[2]}, b, color)
-    end
+    Render.filled(a, {b[1], a[2] + 1}, color)
+    Render.filled({a[1], b[2] - 1}, b, color)
+    Render.filled(a, {a[1] + 1, b[2]}, color)
+    Render.filled({b[1] - 1, a[2]}, b, color)
 end
 
 function Render.line(a, b, color)
     if dx9 and dx9.DrawLine then
+        local x1, y1 = tonumber(a[1]) or 0, tonumber(a[2]) or 0
+        local x2, y2 = tonumber(b[1]) or 0, tonumber(b[2]) or 0
+        local clip = Render.currentClip()
+        if clip then
+            local function inside(px, py)
+                return px >= clip.x and py >= clip.y and px <= clip.x + clip.w and py <= clip.y + clip.h
+            end
+            if not (inside(x1, y1) and inside(x2, y2)) then return end
+        end
         dxSafeCall(dx9.DrawLine, point(a[1], a[2]), point(b[1], b[2]), copyColor(color))
     end
 end
 
 function Render.text(pos, color, text)
     if dx9 and dx9.DrawString then
-        dxSafeCall(dx9.DrawString, point(pos[1], pos[2]), copyColor(color), tostring(text or ""))
+        text = tostring(text or "")
+        local clip = Render.currentClip()
+        if clip then
+            local x, y = tonumber(pos[1]) or 0, tonumber(pos[2]) or 0
+            if y + DXForge.Config.FontHeight < clip.y or y > clip.y + clip.h or x >= clip.x + clip.w then return end
+            if x < clip.x then return end
+            local available = clip.x + clip.w - x
+            if available <= 0 then return end
+            text = Render.trimText(text, available)
+        end
+        dxSafeCall(dx9.DrawString, point(pos[1], pos[2]), copyColor(color), text)
     end
 end
 
@@ -958,8 +1035,10 @@ function Input:update()
 end
 
 function Input:hover(x, y, w, h)
+    local rect = Render.ClippedRect(x, y, w, h)
+    if not rect then return false end
     local mx, my = self.Mouse.x, self.Mouse.y
-    return mx >= x and my >= y and mx <= x + w and my <= y + h
+    return mx >= rect.x and my >= rect.y and mx <= rect.x + rect.w and my <= rect.y + rect.h
 end
 
 function Input:canClaim(id)
@@ -1093,7 +1172,8 @@ end
 
 function Component:updateHover()
     local b = self.Bounds
-    self.Hovered = Input:hover(b[1], b[2], b[3], b[4])
+    self.ClippedVisible = Render.IsInsideClipRect(b[1], b[2], b[3], b[4])
+    self.Hovered = self.ClippedVisible and Input:hover(b[1], b[2], b[3], b[4])
     if self.Hovered and self.Tooltip then
         DXForge.Runtime.HoveredTooltip = {Text = self.Tooltip, Since = self.TooltipSince or os.clock()}
         self.TooltipSince = self.TooltipSince or os.clock()
@@ -1213,7 +1293,7 @@ function Toggle:render(theme)
     end
     Input:release(self.Id)
 
-    if self.Keybind and Input.KeyPressed and Input.Key == self.Keybind then
+    if self.ClippedVisible and self.Keybind and Input.KeyPressed and Input.Key == self.Keybind then
         self:SetValue(not self.Value)
     end
 
@@ -1351,6 +1431,10 @@ function Dropdown:render(theme)
     self:updateHover()
     local b = self.Bounds
     local headerId = self.Id .. ":header"
+    if not self.ClippedVisible and self.Open then
+        self.Open = false
+        if DXForge.Runtime.PopupOwner == self then DXForge.Runtime.PopupOwner = nil end
+    end
 
     Render.text({b[1] + 1, b[2] + 2}, theme.FontColor, Render.trimText(self.Text, b[3]))
     local bx, by, bw, bh = b[1], b[2] + 21, b[3], 24
@@ -1445,7 +1529,11 @@ function Textbox:render(theme)
     end
     Input:release(self.Id)
 
-    if Input.FocusText == self and Input.KeyPressed then
+    if not self.ClippedVisible and Input.FocusText == self then
+        Input.FocusText = nil
+    end
+
+    if self.ClippedVisible and Input.FocusText == self and Input.KeyPressed then
         local key = Input.Key
         if key == "[ENTER]" then
             Input.FocusText = nil
@@ -1510,7 +1598,13 @@ function Keybind:render(theme)
     end
     Input:release(self.Id)
 
-    if self.Reading and Input.KeyPressed and Input.Key ~= "[LBUTTON]" then
+    if not self.ClippedVisible then
+        self.Reading = false
+        if self.State then
+            self.State = false
+            safeCall("Keybind:" .. self.Text, self.Callback, self.Key, self.State)
+        end
+    elseif self.Reading and Input.KeyPressed and Input.Key ~= "[LBUTTON]" then
         self:SetKey(Input.Key)
         self.Reading = false
     elseif (not self.Reading) and self.Key ~= "[None]" and Input.KeyPressed and Input.Key == self.Key then
@@ -1564,6 +1658,10 @@ end
 function ColorPicker:render(theme)
     self:updateHover()
     local b = self.Bounds
+    if not self.ClippedVisible and self.Open then
+        self.Open = false
+        if DXForge.Runtime.PopupOwner == self then DXForge.Runtime.PopupOwner = nil end
+    end
     Render.text({b[1] + 1, b[2] + 9}, theme.FontColor, Render.trimText(self.Text, b[3] - 84))
 
     local sx, sy, sw, sh = b[1] + b[3] - 74, b[2] + 5, 36, 22
@@ -1839,6 +1937,7 @@ function Groupbox:render(theme, x, y, w)
     Render.filled({x + 12, y + 42}, {x + 13, y + h - 12}, theme.BorderSoftColor or theme.OutlineColor)
     Render.filled({x + w - 14, y + 42}, {x + w - 13, y + h - 12}, {10, 12, 18})
 
+    Render.PushClipRect(x + 2, y + 36, w - 4, h - 38)
     local cursor = y + 46
     for _, component in ipairs(self.Components) do
         if component.Visible then
@@ -1847,6 +1946,7 @@ function Groupbox:render(theme, x, y, w)
             cursor = cursor + rowHeight + DXForge.Design.ComponentGap
         end
     end
+    Render.PopClipRect()
     return h
 end
 
@@ -1971,6 +2071,8 @@ function Window:new(config)
 
     local sw, sh = Render.screen()
     local size = normalizeVec2(config.Size, {600, 500})
+    local minSize = normalizeVec2(config.MinSize, {420, 320})
+    minSize = {math.max(420, minSize[1]), math.max(320, minSize[2])}
     local position = normalizeVec2(config.Position or config.StartLocation, {math.floor((sw - size[1]) / 2), math.floor((sh - size[2]) / 2)})
     DXForge.Runtime.ZCounter = DXForge.Runtime.ZCounter + 1
     local requiresStartup = not DXForge.Runtime.StartupQueued and not DXForge.Runtime.StartupCompleted
@@ -1978,8 +2080,8 @@ function Window:new(config)
     local object = setmetatable({
         Title = config.Title or "DXForge Window",
         Position = position,
-        Size = {math.max(360, size[1]), math.max(260, size[2])},
-        MinSize = normalizeVec2(config.MinSize, {360, 260}),
+        Size = {math.max(minSize[1], size[1]), math.max(minSize[2], size[2])},
+        MinSize = minSize,
         ToggleKey = config.ToggleKey,
         Resizable = config.Resizable == true,
         Footer = config.Footer ~= false,
@@ -2090,7 +2192,8 @@ end
 ---@param size DXForgeVector2
 ---@return table
 function Window:SetMinSize(size)
-    self.MinSize = normalizeVec2(size, self.MinSize)
+    local nextSize = normalizeVec2(size, self.MinSize)
+    self.MinSize = {math.max(420, nextSize[1]), math.max(320, nextSize[2])}
     return self:Resize(self.Size)
 end
 
@@ -2227,6 +2330,7 @@ function Window:render()
     local x, y = self.Position[1], self.Position[2]
     local w, h = self.Size[1], self.Size[2]
     Render.panel(x, y, w, h, theme, true)
+    Render.PushClipRect(x, y, w, h)
     Render.filled({x + 3, y + 7}, {x + w - 3, y + DXForge.Config.HeaderHeight + 5}, blend(theme.HeaderColor or theme.MainColor, theme.PanelColor, 0.28))
     Render.filled({x + 14, y + 10}, {x + 20, y + 26}, theme.AccentColor)
     Render.filled({x + 23, y + 10}, {x + 24, y + 26}, theme.GlowColor)
@@ -2239,11 +2343,13 @@ function Window:render()
 
     local cx, cy, cw, ch = self:contentRect()
     Render.innerFrame(cx - 1, cy - 1, cw + 2, ch + 2, theme)
+    Render.PushClipRect(cx, cy, cw, ch)
     Render.contentTexture(cx, cy, cw, ch, theme)
 
     if self.ActiveTab then
         self.ActiveTab:render(theme, cx + 14, cy + 15, cw - 28, ch - 30)
     end
+    Render.PopClipRect()
 
     if self.Resizable then
         Render.filled({x + w - 27, y + h - 27}, {x + w - 7, y + h - 7}, theme.SurfaceDarkColor or {9, 10, 15})
@@ -2254,6 +2360,7 @@ function Window:render()
     end
 
     self:renderFooter(theme)
+    Render.PopClipRect()
 end
 
 --[[
@@ -2533,6 +2640,7 @@ function DXForge:beginFrame()
     self.Runtime.Delta = clamp(now - (self.Runtime.LastFrame or now), 0, 0.05)
     self.Runtime.LastFrame = now
     self.Runtime.HoveredTooltip = nil
+    Render.ClipStack = {}
     Input:update()
 end
 
