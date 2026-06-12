@@ -30,6 +30,10 @@ DXForge:Animate(id, target, speed)
 
 This stores animation values by `id` and interpolates toward `target`.
 
+## Startup Performance
+
+The startup logo is rendered only while the branded intro is active. When the intro finishes, DXForge releases the loaded logo reference and embedded raster run cache, so the normal UI path does not keep paying startup-logo cost.
+
 ## Tuning
 
 Global animation speed lives in:
@@ -46,4 +50,3 @@ Higher values feel snappier. Lower values feel softer.
 - Use accent glow only for startup, active tabs, selected controls, and important feedback.
 - Avoid stacking too many open dropdowns or pickers at once.
 - Prefer consistent speeds over dramatic one-off effects.
-

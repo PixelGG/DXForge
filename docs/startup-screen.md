@@ -24,7 +24,7 @@ DXForge always runs its branded startup screen once when the first window is cre
 
 - Centered premium panel only, without a fullscreen black backdrop
 - Local `DXForge.png` logo image inside the loading panel when supported by the DX9 environment
-- Embedded raster logo fallback rendered with `dx9.DrawFilledBox` when image APIs are unavailable
+- Embedded 160x160 raster logo fallback rendered with `dx9.DrawFilledBox` when image APIs are unavailable
 - Controlled logo loading state before the UI continues
 - Premium text fallback when image rendering is unavailable
 - Animated sweep lines
@@ -37,17 +37,19 @@ DXForge always runs its branded startup screen once when the first window is cre
 The library tries these logo sources:
 
 ```text
+DXForgeLogoCache.png
 DXForge.png
 ./DXForge.png
-DXForgeLogoCache.png
 assets/DXForgeSingle.png
 assets/DXForgeBanner.png
 https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png
 ```
 
-Keep `DXForge.png` next to `DXForge.lua` for the intended startup logo. DXForge tests whether the source can actually be rendered before treating it as loaded.
+Keep `DXForge.png` next to `DXForge.lua` for the intended startup logo. DXForge tests whether the source can actually be rendered before treating it as loaded. If a remote PNG download succeeds, DXForge can reuse `DXForgeLogoCache.png`.
 
-If the runtime does not support image rendering, DXForge falls back to an embedded 32x32 logo raster drawn with standard DX9 filled boxes. Text branding is only the final fallback if even the embedded raster path cannot render.
+If the runtime does not support image rendering, DXForge falls back to an embedded 160x160 logo raster drawn with standard DX9 filled boxes. Text branding is only the final fallback if even the embedded raster path cannot render.
+
+When the intro finishes, DXForge releases the startup logo runtime state and cached embedded draw runs. The main UI does not keep rendering or preparing the startup logo after `StartupCompleted`.
 
 ## Duration
 

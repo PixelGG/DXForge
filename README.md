@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=B254FF" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-1.0.16-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.19-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="License" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Author" />
 </p>
@@ -43,7 +43,8 @@ DXForge is a modern DX9-based Lua UI library for polished overlay interfaces. It
 | Buttons | Slider smoothing | Click-through blocking |
 | Toggles | Dropdown animation | Text width caching |
 | Sliders | Tooltip fade | Debug-friendly errors |
-| Dropdowns | Notification slide/fade | Watermark support |
+| Dropdowns | Draggable scrollbars | Watermark support |
+| FOV Circle | DX9 line fallback | Overlay helpers |
 | Color pickers | Color picker reveal | Extensible component layout |
 
 ## Components
@@ -55,6 +56,7 @@ Dropdown        MultiDropdown   Textbox
 Keybind         ColorPicker     Label
 Divider         Tooltip         Notification
 Watermark       Theme System    Startup Screen
+FOV Circle      Overlay Helpers
 ```
 
 ## Install
@@ -139,6 +141,7 @@ DXForge:Render()
 | Core | `DXForge:SetTheme(name)` |
 | Core | `DXForge:SetThemeColor(key, color)` |
 | Core | `DXForge:GetThemeNames()` |
+| Core | `DXForge:SetFOVCircle(config)` |
 | Window | `Window:AddTab(name)` |
 | Window | `Window:SetOpen(value)` |
 | Window | `Window:Resize(width, height)` |
@@ -189,6 +192,8 @@ DXForge:CreateTheme("VioletSteel", {
 
 DXForge:SetTheme("VioletSteel")
 ```
+
+Theme dropdowns named like `Theme` or `Select Theme` can switch registered themes automatically. Color pickers named like `Primary Color` and `Accent Color` update the matching theme tokens without extra glue code.
 
 ## Motion Profile
 

@@ -23,6 +23,16 @@ Types:
 | `Warning` | Warning color |
 | `Error` | Error color |
 
+Manual close notifications stay visible until their close button is clicked:
+
+```lua
+DXForge:Notify({
+    Text = "Review this important state.",
+    Type = "Warning",
+    ManualClose = true
+})
+```
+
 ## Multiline Notifications
 
 ```lua
@@ -55,4 +65,3 @@ DXForge.Config.TooltipDelay = 0.25
 ```
 
 Tooltips automatically clamp to the screen so they do not render offscreen.
-

@@ -11,9 +11,14 @@
 | `DXForge:CreateWindow(config)` | `Window` | Creates a new UI window. |
 | `DXForge:Render()` | `DXForge` | Updates input, renders startup, windows, notifications, watermark, and tooltips. |
 | `DXForge:Notify(config)` | `DXForge` | Adds a notification. |
+| `DXForge:CreateTheme(name, values)` | `DXForge` | Friendly custom theme creator with optional `Base` / `Extends`. |
 | `DXForge:RegisterTheme(name, values)` | `DXForge` | Registers a custom theme. |
+| `DXForge:UpdateTheme(name, values)` | `DXForge` | Patches an existing theme with partial tokens. |
 | `DXForge:SetTheme(name)` | `DXForge` | Sets the active global theme. |
+| `DXForge:SetThemeColor(key, color)` | `DXForge` | Updates one color token on the active theme. |
+| `DXForge:GetThemeNames()` | `table` | Returns all registered theme names. |
 | `DXForge:SetWatermark(config)` | `DXForge` | Configures the watermark. |
+| `DXForge:SetFOVCircle(config)` | `DXForge` | Configures the optional FOV circle overlay. |
 | `DXForge:SetDebug(value)` | `DXForge` | Enables or disables debug warnings. |
 | `DXForge:Destroy()` | `DXForge` | Clears windows, notifications, and animations. |
 
@@ -43,6 +48,8 @@
 | `Window:Toggle()` | Toggles open state. |
 | `Window:BringToFront()` | Moves the window above other windows. |
 
+Window content uses a draggable scrollbar when content exceeds the visible panel.
+
 ## Tab
 
 | Method | Description |
@@ -67,6 +74,31 @@
 | `Groupbox:AddTextbox(config)` | Adds text input. |
 | `Groupbox:AddKeybind(config)` | Adds key selection/state. |
 | `Groupbox:AddColorPicker(config)` | Adds RGB color selection. |
+
+Long dropdown lists use an internal draggable scrollbar. Theme dropdowns named like `Theme` or `Select Theme` can call `DXForge:SetTheme` automatically.
+
+## Component Notes
+
+| Component | Helpful fields |
+| --- | --- |
+| `Dropdown` | `Text`, `Values`, `Default`, `Callback`. Long lists use a draggable popup scrollbar. |
+| `Textbox` | `Placeholder`, `Default`, `ClearButton`, `Callback`. |
+| `ColorPicker` | `Default`, `Alpha`, `ApplyToTheme`, `ThemeKey`. `Alpha = true` renders an alpha slider. Names like `Primary Color` and `Accent Color` infer theme tokens. |
+| `Keybind` | `Default`, `Mode = "Toggle"` or `Mode = "Hold"`. |
+
+## Overlay Helpers
+
+```lua
+DXForge:SetFOVCircle({
+    Visible = true,
+    Radius = 120,
+    Color = {184, 94, 255},
+    Thickness = 1,
+    FollowMouse = false
+})
+```
+
+The FOV circle uses `dx9.DrawCircle` when available and falls back to segmented `dx9.DrawLine` rendering.
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=72&section=footer&color=0:14151C,55:B254FF,100:090A0F&animation=fadeIn" alt="Footer" width="100%" />

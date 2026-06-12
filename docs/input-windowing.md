@@ -49,6 +49,15 @@ Window:SetSize({640, 480})
 Window:SetMinSize({420, 320})
 ```
 
+## Scrolling
+
+DXForge uses draggable scrollbars instead of mouse-wheel input because DX9WARE does not document a wheel API.
+
+- Window content gets a slim right-side scrollbar when tab content exceeds the visible content panel.
+- Long dropdown lists get their own popup scrollbar.
+- Clipped or offscreen controls do not receive hover or click input.
+- Scrollbar dragging uses the same centralized input claim system as sliders and resize handles.
+
 ## Clipping
 
 DXForge clips rendering and hitboxes through nested container bounds:

@@ -85,6 +85,34 @@ DXForge:SetThemeColor("AccentColor", {210, 92, 255})
 local themes = DXForge:GetThemeNames()
 ```
 
+## Automatic Theme Controls
+
+Dropdowns named like `Theme` or `Select Theme` switch registered themes automatically:
+
+```lua
+Menu:AddDropdown({
+    Text = "Select Theme",
+    Values = DXForge:GetThemeNames(),
+    Default = "Dark"
+})
+```
+
+Color pickers named like `Primary Color` and `Accent Color` infer the matching theme token automatically:
+
+```lua
+Menu:AddColorPicker({Text = "Primary Color"})
+Menu:AddColorPicker({Text = "Accent Color"})
+```
+
+Use `ThemeKey` when you want exact control:
+
+```lua
+Menu:AddColorPicker({
+    Text = "Glow",
+    ThemeKey = "GlowColor"
+})
+```
+
 ## Per-Window Theme
 
 ```lua

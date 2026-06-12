@@ -66,6 +66,8 @@ Box:AddDropdown({
 })
 ```
 
+Long dropdowns show a slim draggable scrollbar. Dropdowns named like `Theme` or `Select Theme` switch registered DXForge themes automatically.
+
 ## MultiDropdown
 
 ```lua
@@ -86,11 +88,14 @@ Box:AddTextbox({
     Text = "Profile Name",
     Placeholder = "Enter name...",
     Default = "",
+    ClearButton = true,
     Callback = function(text)
         print("Text:", text)
     end
 })
 ```
+
+`ClearButton = true` shows an inline clear button whenever the textbox contains text.
 
 ## Keybind
 
@@ -118,15 +123,28 @@ Modes:
 Box:AddColorPicker({
     Text = "Accent Color",
     Default = {180, 70, 255},
+    Alpha = true,
     ApplyToTheme = true,
     Tooltip = "Pick a menu accent color.",
     Callback = function(color)
-        print(color[1], color[2], color[3])
+        print(color[1], color[2], color[3], color[4])
     end
 })
 ```
 
-Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token. Color pickers named like `Primary Color` and `Accent Color` also infer `MainColor` and `AccentColor` automatically.
+Use `Alpha = true` to show the alpha slider. Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token. Color pickers named like `Primary Color` and `Accent Color` also infer `MainColor` and `AccentColor` automatically.
+
+```lua
+Box:AddColorPicker({
+    Text = "Primary Color",
+    Default = {12, 13, 18}
+})
+
+Box:AddColorPicker({
+    Text = "Accent Color",
+    Default = {184, 94, 255}
+})
+```
 
 ## Tooltips
 

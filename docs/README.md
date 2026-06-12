@@ -23,6 +23,7 @@
 | [Animations](animations.md) | Motion behavior, animation consistency, and tuning. |
 | [Startup Screen](startup-screen.md) | Loading screen, logo behavior, and PixelGG signature. |
 | [Notifications & Tooltips](notifications-tooltips.md) | Feedback messages and hover descriptions. |
+| [Overlays](overlays.md) | FOV circle and lightweight overlay helpers. |
 | [Input & Windowing](input-windowing.md) | Focus, z-index, dragging, resizing, and click-blocking. |
 | [DX9 Compatibility](dx9-compatibility.md) | Cult-of-Intellect/DX9 API expectations and fallbacks. |
 | [Examples](examples.md) | Copy-ready complete snippets. |
@@ -42,7 +43,7 @@ DXForge is built for clean overlay interfaces: tight spacing, restrained dark su
 
 ## Project Info
 
-- Version: `1.0.16`
+- Version: `1.0.19`
 - Maintainer: `PixelGG`
 - License: MIT, copyright `2026 PixelGG`
 

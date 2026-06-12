@@ -24,7 +24,11 @@ Startup hides the window until the intro completes. This is intentional DXForge 
 
 ## Logo Does Not Render
 
-Some DX9 environments do not expose `dx9.DrawImage`; the official DX9WARE drawing docs list line/string/circle/box drawing, but not image drawing. DXForge tries local and cached logo sources first, then falls back to an embedded 32x32 logo raster rendered with `dx9.DrawFilledBox`. Text branding is only used if even that primitive-rendered raster cannot be drawn.
+Some DX9 environments do not expose `dx9.DrawImage`; the official DX9WARE drawing docs list line/string/circle/box drawing, but not image drawing. DXForge tries local and cached logo sources first, then falls back to an embedded 160x160 logo raster rendered with `dx9.DrawFilledBox`. Text branding is only used if even that primitive-rendered raster cannot be drawn.
+
+## Startup Feels Heavy
+
+The embedded logo fallback is only used during startup. After the intro completes, DXForge releases the startup logo runtime state and cached embedded logo runs. If the UI still feels delayed after startup, check expensive callbacks or repeated script-side UI reconstruction.
 
 ## Clicks Hit The Wrong Window
 
@@ -37,6 +41,14 @@ Textbox support depends on the key strings returned by `dx9.GetKey()`. Common ke
 ## Dropdown Stays Open
 
 Click the dropdown header again or select an item. MultiDropdown intentionally stays open so multiple values can be selected.
+
+## Cannot Scroll Content
+
+DX9WARE does not document a mouse-wheel API, so DXForge uses draggable scrollbars for window content and long dropdown lists. Drag the slim scrollbar on the right side of the content panel or dropdown popup.
+
+## Theme Or Color Picker Does Not Change The UI
+
+Use registered theme names such as `Default`, `Dark`, or a custom name created with `DXForge:CreateTheme`. Dropdowns named like `Theme` or `Select Theme` switch themes automatically. Color pickers named `Primary Color` or `Accent Color` infer theme tokens automatically; for explicit behavior use `ThemeKey = "AccentColor"` or `ApplyToTheme = true`.
 
 ## Debug Callback Errors
 

@@ -62,6 +62,20 @@ MainBox:AddToggle({
 })
 ```
 
+## Optional Theme Setup
+
+```lua
+DXForge:CreateTheme("NeonBlue", {
+    Base = "Dark",
+    AccentColor = {80, 180, 255},
+    GlowColor = {90, 210, 255}
+})
+
+DXForge:SetTheme("NeonBlue")
+```
+
+Theme names are case-insensitive for convenience. `Default` and `Dark` are available out of the box.
+
 ## Render Loop
 
 DXForge does not install hidden global hooks. Call the render method once per DX9 frame/script tick:

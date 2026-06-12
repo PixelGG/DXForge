@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.16" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.19" then
     return DXForge
 end
 
@@ -116,7 +116,7 @@ end
 ---@class DXForgeTextboxConfig: DXForgeBaseComponentConfig
 ---@field Placeholder string|nil Placeholder text.
 ---@field Default string|nil Initial text value.
----@field ClearButton boolean|nil Reserved for clear button behavior.
+---@field ClearButton boolean|nil Shows a clear button inside the textbox.
 
 ---@class DXForgeKeybindConfig: DXForgeBaseComponentConfig
 ---@field Default string|nil Initial DX9 key string.
@@ -134,12 +134,22 @@ end
 ---@field Duration number|nil Lifetime in seconds.
 ---@field Length number|nil Legacy alias for `Duration`.
 ---@field Type DXForgeNotificationType|nil Notification accent type.
----@field ManualClose boolean|nil Reserved for manual close behavior.
+---@field ManualClose boolean|nil Keeps the notification visible until its close button is clicked.
 
 ---@class DXForgeWatermarkConfig
 ---@field Text string|nil Watermark text.
 ---@field Visible boolean|nil Watermark visibility.
 ---@field Position DXForgeVector2|nil Watermark position.
+
+---@class DXForgeFOVCircleConfig
+---@field Visible boolean|nil FOV circle visibility.
+---@field Radius number|nil Circle radius in pixels.
+---@field Color DXForgeColor|nil Circle color.
+---@field Thickness number|nil Circle line thickness.
+---@field Segments number|nil Line fallback segment count.
+---@field Position DXForgeVector2|nil Fixed center position.
+---@field FollowMouse boolean|nil Centers the circle on the mouse when true.
+---@field Outline boolean|nil Draws a subtle dark outline.
 
 ---@class DXForge
 ---@field __DXFORGE_VERSION string
@@ -151,7 +161,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.16",
+    __DXFORGE_VERSION = "1.0.19",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -161,6 +171,16 @@ DXForge = {
     Themes = {},
     ActiveTheme = "Default",
     Notifications = {},
+    FOVCircle = {
+        Visible = false,
+        Radius = 90,
+        Color = {184, 94, 255},
+        Thickness = 1,
+        Segments = 96,
+        Position = nil,
+        FollowMouse = false,
+        Outline = true
+    },
     TextCache = {},
     Animations = {},
     Runtime = {
@@ -986,6 +1006,42 @@ function Render.line(a, b, color)
         end
         dxSafeCall(dx9.DrawLine, point(a[1], a[2]), point(b[1], b[2]), copyColor(color))
     end
+end
+
+function Render.circle(center, radius, color, thickness, segments)
+    radius = math.max(1, tonumber(radius) or 1)
+    thickness = math.max(1, math.floor(tonumber(thickness) or 1))
+    segments = clamp(math.floor(tonumber(segments) or 96), 24, 192)
+    local cx, cy = tonumber(center[1]) or 0, tonumber(center[2]) or 0
+
+    if dx9 and dx9.DrawCircle then
+        local p = point(cx, cy)
+        local rgb = copyColor(color)
+        local attempts = {
+            {p, radius, rgb},
+            {p, radius, rgb, thickness},
+            {cx, cy, radius, rgb},
+            {cx, cy, radius, rgb, thickness}
+        }
+        for _, args in ipairs(attempts) do
+            local ok, result = dxSafeCall(dx9.DrawCircle, unpack(args))
+            if ok and result ~= false then return true end
+        end
+    end
+
+    for layer = 0, thickness - 1 do
+        local r = radius + layer
+        local lastX = cx + math.cos(0) * r
+        local lastY = cy + math.sin(0) * r
+        for index = 1, segments do
+            local angle = (index / segments) * math.pi * 2
+            local nextX = cx + math.cos(angle) * r
+            local nextY = cy + math.sin(angle) * r
+            Render.line({lastX, lastY}, {nextX, nextY}, color)
+            lastX, lastY = nextX, nextY
+        end
+    end
+    return true
 end
 
 function Render.text(pos, color, text)
@@ -1949,9 +2005,18 @@ function Textbox:render(theme)
     local b = self.Bounds
     Render.text({b[1] + 1, b[2] + 2}, theme.FontColor, Render.trimText(self.Text, b[3]))
     local bx, by, bw, bh = b[1], b[2] + 21, b[3], 24
-    if Input:clicked(self.Id, bx, by, bw, bh) then
+    local clearVisible = self.ClearButton and self.Value ~= ""
+    local clearId = self.Id .. ":clear"
+    local clearW = clearVisible and 22 or 0
+    local clearX = bx + bw - 24
+
+    if clearVisible and Input:clicked(clearId, clearX, by + 2, 20, bh - 4) then
+        self:SetValue("")
+        Input.FocusText = nil
+    elseif Input:clicked(self.Id, bx, by, bw, bh) then
         Input.FocusText = self
     end
+    Input:release(clearId)
     Input:release(self.Id)
 
     if not self.ClippedVisible and Input.FocusText == self then
@@ -1978,7 +2043,13 @@ function Textbox:render(theme)
     Render.surface(bx, by, bw, bh, theme, active, self.Hovered)
     Render.filled({bx + 4, by + bh - 5}, {bx + bw - 4, by + bh - 3}, active and theme.AccentColor or (theme.BorderSoftColor or {33, 35, 44}))
     local shown = self.Value ~= "" and self.Value or self.Placeholder
-    Render.text({bx + 10, by + 6}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 20))
+    Render.text({bx + 10, by + 6}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 20 - clearW))
+    if clearVisible then
+        local hoveredClear = Input:hover(clearX, by + 2, 20, bh - 4)
+        Render.filled({clearX, by + 4}, {clearX + 18, by + bh - 4}, hoveredClear and theme.HoverColor or theme.SurfaceDarkColor)
+        Render.line({clearX + 6, by + 9}, {clearX + 13, by + 16}, hoveredClear and theme.AccentColor or theme.TextMutedColor)
+        Render.line({clearX + 13, by + 9}, {clearX + 6, by + 16}, hoveredClear and theme.AccentColor or theme.TextMutedColor)
+    end
 end
 
 local Keybind = setmetatable({}, Component)
@@ -2179,7 +2250,25 @@ function ColorPicker:render(theme)
 
             Render.surface(px + 8, py + 90, pw - 16, 20, theme, false, false)
             Render.filled({px + 12, py + 95}, {px + 21, py + 104}, currentHue)
-            Render.text({px + 28, py + 93}, theme.FontColor, rgbToHex(self.Value) .. "  RGB(" .. math.floor(self.Value[1]) .. ", " .. math.floor(self.Value[2]) .. ", " .. math.floor(self.Value[3]) .. ")")
+            local colorText = rgbToHex(self.Value) .. "  RGB(" .. math.floor(self.Value[1]) .. ", " .. math.floor(self.Value[2]) .. ", " .. math.floor(self.Value[3]) .. ")"
+            if self.WithAlpha then
+                colorText = colorText .. "  A(" .. math.floor(self.Alpha) .. ")"
+            end
+            Render.text({px + 28, py + 93}, theme.FontColor, Render.trimText(colorText, pw - 42))
+
+            if self.WithAlpha then
+                local alphaX, alphaY, alphaW, alphaH = px + 10, py + 116, pw - 20, 8
+                local alphaPct = clamp((self.Alpha or 255) / 255, 0, 1)
+                Render.filled({alphaX, alphaY - 1}, {alphaX + alphaW, alphaY + alphaH + 1}, theme.BorderSoftColor or theme.OutlineColor)
+                Render.filled({alphaX + 1, alphaY}, {alphaX + alphaW - 1, alphaY + alphaH}, theme.SurfaceDarkColor or {7, 8, 12})
+                Render.filled({alphaX + 2, alphaY + 2}, {alphaX + 2 + (alphaW - 4) * alphaPct, alphaY + alphaH - 2}, theme.AccentColor)
+                Render.filled({alphaX + alphaW * alphaPct - 2, alphaY - 3}, {alphaX + alphaW * alphaPct + 2, alphaY + alphaH + 3}, theme.FontColor)
+                if Input.MouseDown and Input:hover(alphaX - 3, alphaY - 5, alphaW + 6, alphaH + 10) then
+                    Input:claim(self.Id .. ":alpha")
+                    self.Alpha = clamp(((Input.Mouse.x - alphaX) / alphaW) * 255, 0, 255)
+                    self:updateColor()
+                end
+            end
         end
     end
 end
@@ -2938,17 +3027,18 @@ function DXForge:renderNotifications(theme)
 
     for _, notification in ipairs(self.Notifications) do
         local age = now - notification.CreatedAt
-        if age <= notification.Duration then
+        local alive = (notification.ManualClose and not notification.Closed) or (age <= notification.Duration)
+        if alive then
             table.insert(kept, notification)
             local lines = splitLines(notification.Text)
             local width = 250
             for _, line in ipairs(lines) do
-                width = math.max(width, Render.textWidth(line) + 44)
+                width = math.max(width, Render.textWidth(line) + (notification.ManualClose and 68 or 44))
             end
             width = math.min(width, 420)
             local height = 34 + (#lines - 1) * 17
             local enter = easeOutCubic(clamp(age / 0.32, 0, 1))
-            local leave = 1 - easeOutCubic(clamp((age - notification.Duration + 0.35) / 0.35, 0, 1))
+            local leave = notification.ManualClose and 1 or (1 - easeOutCubic(clamp((age - notification.Duration + 0.35) / 0.35, 0, 1)))
             local alpha = math.min(enter, leave)
             local x = sw - 20 - width + (1 - alpha) * 42
             local color = theme.AccentColor
@@ -2963,11 +3053,25 @@ function DXForge:renderNotifications(theme)
             Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, color)
             Render.filled({x + 1, y + 1}, {x + 6, y + height - 1}, color)
             Render.filled({x + 12, y + 11}, {x + 17, y + 16}, color)
-            local progress = clamp(age / notification.Duration, 0, 1)
-            Render.filled({x + 6, y + height - 4}, {x + 6 + (width - 8) * (1 - progress), y + height - 2}, color)
+            if notification.ManualClose then
+                local closeId = notification.Id .. ":close"
+                local closeX, closeY = x + width - 25, y + 7
+                local closeHover = Input:hover(closeX, closeY, 16, 16)
+                if Input:clicked(closeId, closeX, closeY, 16, 16) then
+                    notification.Closed = true
+                end
+                Input:release(closeId)
+                Render.filled({closeX, closeY}, {closeX + 16, closeY + 16}, closeHover and theme.HoverColor or theme.SurfaceDarkColor)
+                Render.line({closeX + 5, closeY + 5}, {closeX + 11, closeY + 11}, closeHover and color or theme.TextMutedColor)
+                Render.line({closeX + 11, closeY + 5}, {closeX + 5, closeY + 11}, closeHover and color or theme.TextMutedColor)
+                Render.filled({x + 6, y + height - 4}, {x + width - 8, y + height - 2}, color)
+            else
+                local progress = clamp(age / notification.Duration, 0, 1)
+                Render.filled({x + 6, y + height - 4}, {x + 6 + (width - 8) * (1 - progress), y + height - 2}, color)
+            end
 
             for index, line in ipairs(lines) do
-                Render.text({x + 24, y + 7 + (index - 1) * 17}, index == 1 and theme.FontColor or theme.TextMutedColor, Render.trimText(line, width - 34))
+                Render.text({x + 24, y + 7 + (index - 1) * 17}, index == 1 and theme.FontColor or theme.TextMutedColor, Render.trimText(line, width - (notification.ManualClose and 58 or 34)))
             end
             y = y + height + 8
         end
@@ -3029,6 +3133,81 @@ function DXForge:SetWatermark(config)
 end
 
 DXForge:SetWatermark({Text = "DXForge", Visible = true, Position = {12, 12}})
+
+--[[
+    Configures the optional FOV circle overlay.
+
+    @param config table|boolean
+        FOV config table or direct visibility boolean.
+        Optional:
+            - Visible: boolean
+            - Radius: number
+            - Color: table<number, number, number>
+            - Thickness: number
+            - Segments: number
+            - Position: table<number, number>
+            - FollowMouse: boolean
+            - Outline: boolean
+
+    @return table
+        Returns the DXForge instance for chaining.
+]]
+---@param config DXForgeFOVCircleConfig|boolean
+---@return DXForge
+function DXForge:SetFOVCircle(config)
+    if type(config) == "boolean" then
+        config = {Visible = config}
+    elseif type(config) ~= "table" then
+        config = {}
+    end
+
+    local current = self.FOVCircle or {}
+    local visible = current.Visible == true
+    if config.Visible ~= nil then visible = config.Visible == true end
+    local followMouse = current.FollowMouse == true
+    if config.FollowMouse ~= nil then followMouse = config.FollowMouse == true end
+    local outline = current.Outline ~= false
+    if config.Outline ~= nil then outline = config.Outline == true end
+
+    self.FOVCircle = {
+        Visible = visible,
+        Radius = math.max(1, tonumber(config.Radius) or current.Radius or 90),
+        Color = normalizeColor(config.Color, current.Color or self:GetTheme().AccentColor),
+        Thickness = math.max(1, math.floor(tonumber(config.Thickness) or current.Thickness or 1)),
+        Segments = clamp(math.floor(tonumber(config.Segments) or current.Segments or 96), 24, 192),
+        Position = type(config.Position) == "table" and normalizeVec2(config.Position, current.Position or {0, 0}) or current.Position,
+        FollowMouse = followMouse,
+        Outline = outline
+    }
+
+    return self
+end
+
+function DXForge:renderFOVCircle(theme)
+    local fov = self.FOVCircle
+    if not fov or not fov.Visible then return end
+
+    local sw, sh = Render.screen()
+    local center
+    if fov.FollowMouse then
+        center = {Input.Mouse.x, Input.Mouse.y}
+    elseif type(fov.Position) == "table" then
+        center = {fov.Position[1], fov.Position[2]}
+    else
+        center = {sw / 2, sh / 2}
+    end
+
+    local color = normalizeColor(fov.Color, theme.AccentColor)
+    local radius = math.max(1, tonumber(fov.Radius) or 90)
+    local thickness = math.max(1, math.floor(tonumber(fov.Thickness) or 1))
+    local segments = clamp(math.floor(tonumber(fov.Segments) or 96), 24, 192)
+
+    if fov.Outline ~= false then
+        Render.circle(center, radius + 1, {0, 0, 0}, thickness + 1, segments)
+        Render.circle(center, math.max(1, radius - 1), {0, 0, 0}, 1, segments)
+    end
+    Render.circle(center, radius, color, thickness, segments)
+end
 
 function DXForge:renderWatermark(theme)
     if not self.Watermark or not self.Watermark.Visible then return end
@@ -3182,6 +3361,7 @@ function DXForge:Render()
     end
 
     self:renderWatermark(theme)
+    self:renderFOVCircle(theme)
     self:sortWindows()
     self.Runtime.InputWindow = nil
     for index = #self.WindowOrder, 1, -1 do
@@ -3215,6 +3395,7 @@ function DXForge:Destroy()
     self.WindowOrder = {}
     self.Notifications = {}
     self.Animations = {}
+    if self.FOVCircle then self.FOVCircle.Visible = false end
     return self
 end
 

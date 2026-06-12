@@ -34,6 +34,7 @@ Left:AddSlider({
 Right:AddColorPicker({
     Text = "Accent",
     Default = {178, 84, 255},
+    ThemeKey = "AccentColor",
     Callback = function(color) print(color[1], color[2], color[3]) end
 })
 ```
@@ -54,12 +55,27 @@ Menu:AddKeybind({
 })
 
 Menu:AddDropdown({
-    Text = "Theme",
-    Values = {"Default", "VioletSteel"},
-    Default = "Default",
-    Callback = function(theme)
-        DXForge:SetTheme(theme)
-    end
+    Text = "Select Theme",
+    Values = DXForge:GetThemeNames(),
+    Default = "Dark"
+})
+
+Menu:AddColorPicker({
+    Text = "Primary Color",
+    Default = {12, 13, 18}
+})
+
+Menu:AddColorPicker({
+    Text = "Accent Color",
+    Default = {184, 94, 255}
+})
+
+DXForge:SetFOVCircle({
+    Visible = true,
+    Radius = 120,
+    Color = {184, 94, 255},
+    Thickness = 1,
+    FollowMouse = false
 })
 ```
 

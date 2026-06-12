@@ -26,7 +26,8 @@ DXForge uses this Cult-of-Intellect-style DX9 Lua API surface:
 
 | Function | Fallback |
 | --- | --- |
-| `dx9.DrawImage(...)` | Startup logo falls back to an embedded raster logo drawn with `dx9.DrawFilledBox`. |
+| `dx9.DrawImage(...)` | Startup logo falls back to an embedded 160x160 raster logo drawn with `dx9.DrawFilledBox`. |
+| `dx9.DrawCircle(...)` | FOV circle falls back to segmented `dx9.DrawLine` rendering. |
 
 `dx9.DrawImage` is treated as optional because it is not listed on the official DX9WARE drawing functions page. DXForge will attempt multiple possible image call signatures when it exists, then fall back to the embedded logo raster.
 
@@ -46,6 +47,8 @@ Keep `DXForge.lua` local. DX9WARE does not provide Roblox's `game` object or `ga
 - Coordinates are rounded and rectangle points are normalized before drawing.
 - Colors are passed as `{r, g, b}` tables for broad DX9 compatibility.
 - If image rendering is unsupported, the mandatory startup screen still shows the embedded DXForge logo raster and the `PixelGG` signature.
+- Startup logo runtime state is released after the intro, so the normal UI path does not keep preparing the logo.
+- DX9WARE does not document a mouse-wheel function. DXForge uses draggable scrollbars for window content and long dropdowns.
 - Textbox typing depends on the key strings returned by `dx9.GetKey()`.
 
 ## Quick Sanity Test
