@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.5" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.6" then
     return DXForge
 end
 
@@ -56,6 +56,18 @@ end
 ---@field PanelColor DXForgeColor Control panel color.
 ---@field TextMutedColor DXForgeColor Secondary text color.
 ---@field GlowColor DXForgeColor Startup glow/accent color.
+---@field WindowColor DXForgeColor Outer window fill color.
+---@field HeaderColor DXForgeColor Premium header surface color.
+---@field HeaderDarkColor DXForgeColor Dark header/footer surface color.
+---@field SurfaceColor DXForgeColor Elevated component surface color.
+---@field SurfaceLightColor DXForgeColor Top highlight surface color.
+---@field SurfaceDarkColor DXForgeColor Recessed surface color.
+---@field BorderSoftColor DXForgeColor Subtle border and rail color.
+---@field BorderStrongColor DXForgeColor High-emphasis outer border color.
+---@field AccentSoftColor DXForgeColor Soft accent glow color.
+---@field AccentDimColor DXForgeColor Muted accent rail color.
+---@field ActiveColor DXForgeColor Active control fill color.
+---@field TextHeaderColor DXForgeColor High-emphasis header text color.
 
 ---@class DXForgeWindowConfig
 ---@field Title string|nil Window title.
@@ -133,7 +145,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.5",
+    __DXFORGE_VERSION = "1.0.6",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -177,14 +189,25 @@ DXForge = {
     },
     Config = {
         FontHeight = 16,
-        RowHeight = 25,
-        HeaderHeight = 28,
-        TabHeight = 27,
-        Padding = 10,
-        GroupPadding = 9,
-        AnimationSpeed = 14,
+        RowHeight = 28,
+        HeaderHeight = 34,
+        TabHeight = 31,
+        Padding = 12,
+        GroupPadding = 12,
+        AnimationSpeed = 15,
         StartupDuration = 3.15,
         TooltipDelay = 0.25
+    },
+    Design = {
+        Radius = 4,
+        WindowInset = 14,
+        ContentInset = 14,
+        ComponentGap = 8,
+        SectionHeader = 34,
+        ControlHeight = 24,
+        ButtonHeight = 32,
+        ToggleWidth = 54,
+        ToggleHeight = 22
     }
 }
 
@@ -347,20 +370,32 @@ end
 --// Theme System --------------------------------------------------------------
 
 DXForge.Themes.Default = {
-    FontColor = {242, 242, 248},
-    MainColor = {15, 16, 21},
-    BackgroundColor = {8, 9, 13},
-    AccentColor = {176, 92, 255},
-    OutlineColor = {60, 62, 74},
+    FontColor = {244, 245, 250},
+    MainColor = {12, 13, 18},
+    BackgroundColor = {6, 7, 11},
+    AccentColor = {184, 94, 255},
+    OutlineColor = {54, 57, 70},
     ShadowColor = {0, 0, 0},
     SuccessColor = {75, 220, 145},
     WarningColor = {255, 188, 82},
     ErrorColor = {255, 94, 118},
-    DisabledColor = {88, 91, 104},
-    HoverColor = {34, 36, 46},
-    PanelColor = {22, 23, 30},
-    TextMutedColor = {151, 154, 170},
-    GlowColor = {136, 70, 255}
+    DisabledColor = {82, 86, 101},
+    HoverColor = {39, 42, 54},
+    PanelColor = {20, 22, 30},
+    TextMutedColor = {158, 162, 180},
+    GlowColor = {136, 70, 255},
+    WindowColor = {10, 11, 16},
+    HeaderColor = {24, 26, 36},
+    HeaderDarkColor = {14, 15, 21},
+    SurfaceColor = {18, 20, 28},
+    SurfaceLightColor = {31, 34, 45},
+    SurfaceDarkColor = {9, 10, 15},
+    BorderSoftColor = {37, 40, 52},
+    BorderStrongColor = {78, 82, 100},
+    AccentSoftColor = {86, 45, 135},
+    AccentDimColor = {43, 28, 64},
+    ActiveColor = {39, 27, 55},
+    TextHeaderColor = {255, 255, 255}
 }
 
 --[[
@@ -516,29 +551,33 @@ function Render.text(pos, color, text)
 end
 
 function Render.panel(x, y, w, h, theme, accent)
-    Render.filled({x + 7, y + 8}, {x + w + 7, y + h + 8}, {0, 0, 0})
-    Render.filled({x + 4, y + 5}, {x + w + 4, y + h + 5}, {2, 2, 4})
-    Render.filled({x - 1, y - 1}, {x + w + 1, y + h + 1}, {0, 0, 0})
+    Render.filled({x + 9, y + 11}, {x + w + 9, y + h + 11}, theme.ShadowColor)
+    Render.filled({x + 5, y + 7}, {x + w + 5, y + h + 7}, {1, 2, 4})
+    Render.filled({x - 2, y - 2}, {x + w + 2, y + h + 2}, theme.ShadowColor)
+    Render.filled({x - 1, y - 1}, {x + w + 1, y + h + 1}, theme.BorderStrongColor or theme.OutlineColor)
     Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {5, 6, 10})
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.WindowColor or theme.MainColor)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, theme.PanelColor)
-    Render.filled({x + 3, y + 3}, {x + w - 3, y + 24}, blend(theme.PanelColor, {42, 44, 55}, 0.48))
-    Render.filled({x + 3, y + 25}, {x + w - 3, y + 26}, {44, 46, 58})
-    Render.filled({x + 3, y + h - 3}, {x + w - 3, y + h - 2}, {4, 5, 8})
+    Render.filled({x + 3, y + 3}, {x + w - 3, y + 31}, theme.HeaderColor or blend(theme.PanelColor, {42, 44, 55}, 0.48))
+    Render.filled({x + 3, y + 32}, {x + w - 3, y + 33}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({x + 3, y + h - 4}, {x + w - 3, y + h - 3}, theme.SurfaceDarkColor or {4, 5, 8})
     if accent then
         Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.GlowColor)
         Render.filled({x + 3, y + 4}, {x + w - 3, y + 5}, theme.AccentColor)
-        Render.filled({x + 3, y + 6}, {x + 68, y + 7}, blend(theme.AccentColor, theme.FontColor, 0.25))
+        Render.filled({x + 3, y + 6}, {x + 96, y + 7}, blend(theme.AccentColor, theme.FontColor, 0.25))
+        Render.filled({x + w - 108, y + 6}, {x + w - 14, y + 7}, theme.AccentDimColor or theme.AccentColor)
     end
 end
 
 function Render.surface(x, y, w, h, theme, active, hovered)
-    local fill = hovered and blend(theme.PanelColor, theme.HoverColor, 0.6) or theme.PanelColor
-    Render.filled({x, y}, {x + w, y + h}, active and theme.AccentColor or theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {7, 8, 12})
+    local base = active and (theme.ActiveColor or theme.PanelColor) or (theme.SurfaceColor or theme.PanelColor)
+    local fill = hovered and blend(base, theme.HoverColor, 0.58) or base
+    Render.filled({x + 2, y + 3}, {x + w + 2, y + h + 3}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, active and theme.AccentColor or (theme.BorderSoftColor or theme.OutlineColor))
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {7, 8, 12})
     Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, fill)
-    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, active and theme.GlowColor or {42, 44, 55})
-    Render.filled({x + 2, y + h - 3}, {x + w - 2, y + h - 2}, {5, 6, 9})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, active and theme.GlowColor or (theme.SurfaceLightColor or {42, 44, 55}))
+    Render.filled({x + 2, y + h - 3}, {x + w - 2, y + h - 2}, theme.SurfaceDarkColor or {5, 6, 9})
 end
 
 function Render.accentLine(x, y, w, theme, active)
@@ -550,23 +589,38 @@ function Render.accentLine(x, y, w, theme, active)
 end
 
 function Render.innerFrame(x, y, w, h, theme)
+    Render.filled({x + 3, y + 4}, {x + w + 3, y + h + 4}, theme.ShadowColor)
     Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {5, 6, 10})
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {5, 6, 10})
     Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, theme.BackgroundColor)
-    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, {43, 45, 56})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.SurfaceLightColor or {43, 45, 56})
     Render.filled({x + 2, y + h - 3}, {x + w - 2, y + h - 2}, {2, 3, 6})
 end
 
 function Render.contentTexture(x, y, w, h, theme)
-    local rail = blend(theme.PanelColor, theme.BackgroundColor, 0.6)
+    local rail = blend(theme.SurfaceColor or theme.PanelColor, theme.BackgroundColor, 0.58)
     Render.filled({x + 12, y + 12}, {x + w - 12, y + 13}, rail)
     Render.filled({x + 12, y + h - 13}, {x + w - 12, y + h - 12}, {3, 4, 7})
-    for i = 0, 3 do
-        local px = x + 18 + i * 42
-        if px < x + w - 18 then
-            Render.filled({px, y + 19}, {px + 14, y + 20}, {30, 32, 42})
-        end
+    Render.filled({x + 14, y + 18}, {x + 15, y + h - 18}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({x + w - 16, y + 18}, {x + w - 15, y + h - 18}, {12, 14, 20})
+    for i = 0, 5 do
+        local px = x + 28 + i * 48
+        if px < x + w - 24 then Render.filled({px, y + 20}, {px + 18, y + 21}, {26, 29, 39}) end
     end
+    for i = 0, 2 do
+        local py = y + 42 + i * 46
+        if py < y + h - 22 then Render.filled({x + w - 72, py}, {x + w - 24, py + 1}, {17, 19, 27}) end
+    end
+end
+
+function Render.controlLabel(x, y, w, text, theme, active)
+    Render.text({x, y}, active and (theme.TextHeaderColor or theme.FontColor) or theme.FontColor, Render.trimText(text, w))
+end
+
+function Render.valuePill(x, y, w, h, text, theme, active)
+    Render.surface(x, y, w, h, theme, active, false)
+    Render.filled({x + 4, y + h - 4}, {x + w - 4, y + h - 3}, active and theme.AccentColor or (theme.BorderSoftColor or theme.OutlineColor))
+    Render.text({x + 7, y + 5}, active and theme.FontColor or theme.TextMutedColor, Render.trimText(text, w - 14))
 end
 
 function Render.fitRect(x, y, w, h, ratio)
@@ -975,7 +1029,7 @@ Label.__index = Label
 
 function Label:new(groupbox, config)
     local object = Component.new(self, "Label", groupbox, config)
-    object.Height = config.Height or 20
+    object.Height = config.Height or 22
     object.Color = config.Color
     return object
 end
@@ -983,7 +1037,7 @@ end
 function Label:render(theme)
     self:updateHover()
     local b = self.Bounds
-    Render.text({b[1], b[2] + 2}, self.Color or theme.FontColor, Render.trimText(self.Text, b[3] - 4))
+    Render.text({b[1] + 1, b[2] + 4}, self.Color or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 4))
 end
 
 local Divider = setmetatable({}, Component)
@@ -991,14 +1045,15 @@ Divider.__index = Divider
 
 function Divider:new(groupbox, config)
     local object = Component.new(self, "Divider", groupbox, config)
-    object.Height = 16
+    object.Height = 20
     return object
 end
 
 function Divider:render(theme)
     local b = self.Bounds
-    local mid = b[2] + 8
-    Render.line({b[1], mid}, {b[1] + b[3], mid}, theme.OutlineColor)
+    local mid = b[2] + 10
+    Render.line({b[1], mid}, {b[1] + b[3], mid}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.line({b[1], mid + 1}, {b[1] + 48, mid + 1}, theme.AccentDimColor or theme.AccentColor)
     if self.Text ~= "Divider" and self.Text ~= "" then
         local tw = Render.textWidth(self.Text)
         Render.filled({b[1] + 8, mid - 8}, {b[1] + 16 + tw, mid + 8}, theme.BackgroundColor)
@@ -1011,7 +1066,7 @@ Button.__index = Button
 
 function Button:new(groupbox, config)
     local object = Component.new(self, "Button", groupbox, config)
-    object.Height = config.Height or 28
+    object.Height = config.Height or DXForge.Design.ButtonHeight
     return object
 end
 
@@ -1030,9 +1085,10 @@ function Button:render(theme)
     if pressed then fill = blend(fill, theme.AccentColor, 0.28) end
     Render.surface(b[1], b[2], b[3], b[4], theme, pressed, self.Hovered)
     Render.filled({b[1] + 2, b[2] + 2}, {b[1] + b[3] - 2, b[2] + b[4] - 2}, fill)
-    Render.filled({b[1] + 4, b[2] + b[4] - 5}, {b[1] + 4 + (b[3] - 8) * hover, b[2] + b[4] - 3}, theme.AccentColor)
-    Render.filled({b[1] + 4, b[2] + 4}, {b[1] + 5, b[2] + b[4] - 4}, blend(theme.AccentColor, theme.PanelColor, 1 - hover))
-    Render.text({b[1] + 11, b[2] + 7 + press}, theme.FontColor, Render.trimText(self.Text, b[3] - 22))
+    Render.filled({b[1] + 4, b[2] + 4}, {b[1] + b[3] - 4, b[2] + 5}, blend(theme.SurfaceLightColor, theme.AccentColor, hover * 0.35))
+    Render.filled({b[1] + 5, b[2] + b[4] - 6}, {b[1] + 5 + (b[3] - 10) * hover, b[2] + b[4] - 4}, theme.AccentColor)
+    Render.filled({b[1] + 5, b[2] + 7}, {b[1] + 7, b[2] + b[4] - 7}, blend(theme.AccentColor, theme.PanelColor, 1 - hover))
+    Render.text({b[1] + 13, b[2] + 9 + press}, theme.FontColor, Render.trimText(self.Text, b[3] - 26))
 end
 
 local Toggle = setmetatable({}, Component)
@@ -1042,6 +1098,7 @@ function Toggle:new(groupbox, config)
     local object = Component.new(self, "Toggle", groupbox, config)
     object.Value = config.Default == true
     object.Keybind = config.Keybind
+    object.Height = config.Height or 32
     return object
 end
 
@@ -1082,17 +1139,23 @@ function Toggle:render(theme)
 
     local t = DXForge:Animate(self.Id .. ":value", self.Value and 1 or 0, 18)
     local hover = DXForge:Animate(self.Id .. ":hover", self.Hovered and 1 or 0, 15)
-    Render.text({b[1], b[2] + 6}, self.Value and theme.FontColor or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 70))
+    Render.text({b[1] + 1, b[2] + 9}, self.Value and theme.FontColor or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 82))
 
-    local sx, sy, sw, sh = b[1] + b[3] - 52, b[2] + 4, 48, 20
-    Render.filled({sx + 2, sy + 3}, {sx + sw + 2, sy + sh + 3}, {0, 0, 0})
-    Render.surface(sx, sy, sw, sh, theme, self.Value, self.Hovered)
-    Render.filled({sx + 3, sy + 4}, {sx + sw - 3, sy + sh - 4}, self.Value and blend(theme.GlowColor, theme.AccentColor, 0.34) or {16, 17, 23})
-    Render.filled({sx + 4, sy + sh - 5}, {sx + 4 + (sw - 8) * t, sy + sh - 3}, theme.AccentColor)
-    local knob = sx + 4 + (sw - 18) * t
-    Render.filled({knob + 1, sy + 5}, {knob + 14, sy + sh - 4}, {0, 0, 0})
-    Render.filled({knob, sy + 4}, {knob + 14, sy + sh - 5}, self.Value and theme.FontColor or {135, 138, 152})
-    Render.filled({knob + 2, sy + 6}, {knob + 12, sy + 7}, self.Value and blend(theme.FontColor, theme.AccentColor, 0.35) or {185, 187, 198})
+    local sx, sy, sw, sh = b[1] + b[3] - DXForge.Design.ToggleWidth - 2, b[2] + 5, DXForge.Design.ToggleWidth, DXForge.Design.ToggleHeight
+    local activeFill = blend(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, 0.38 + t * 0.34)
+    Render.filled({sx + 3, sy + 4}, {sx + sw + 3, sy + sh + 4}, theme.ShadowColor)
+    Render.filled({sx, sy}, {sx + sw, sy + sh}, self.Value and theme.AccentColor or (theme.BorderStrongColor or theme.OutlineColor))
+    Render.filled({sx + 1, sy + 1}, {sx + sw - 1, sy + sh - 1}, theme.SurfaceDarkColor or {8, 9, 13})
+    Render.filled({sx + 3, sy + 3}, {sx + sw - 3, sy + sh - 3}, self.Value and activeFill or {18, 20, 28})
+    Render.filled({sx + 5, sy + sh - 5}, {sx + 5 + (sw - 10) * t, sy + sh - 3}, theme.GlowColor)
+    Render.filled({sx + 5, sy + 4}, {sx + sw - 5, sy + 5}, blend(theme.SurfaceLightColor, theme.FontColor, hover * 0.22))
+    local knob = sx + 4 + (sw - 20) * t
+    Render.filled({knob + 2, sy + 5}, {knob + 18, sy + sh - 4}, theme.ShadowColor)
+    Render.filled({knob, sy + 3}, {knob + 18, sy + sh - 3}, self.Value and theme.FontColor or {142, 146, 160})
+    Render.filled({knob + 3, sy + 6}, {knob + 15, sy + 7}, self.Value and blend(theme.FontColor, theme.AccentColor, 0.32) or {196, 199, 210})
+    local stateText = self.Value and "ON" or "OFF"
+    local stateX = self.Value and (sx + 8) or (sx + sw - Render.textWidth(stateText) - 8)
+    Render.text({stateX, sy + 5}, self.Value and theme.AccentColor or theme.DisabledColor, stateText)
 end
 
 local Slider = setmetatable({}, Component)
@@ -1105,7 +1168,7 @@ function Slider:new(groupbox, config)
     object.Step = tonumber(config.Step) or 1
     object.Value = clamp(tonumber(config.Default) or object.Min, object.Min, object.Max)
     object.DisplayValue = object.Value
-    object.Height = config.Height or 38
+    object.Height = config.Height or 44
     return object
 end
 
@@ -1135,10 +1198,10 @@ function Slider:render(theme)
     self:updateHover()
     local b = self.Bounds
     local valueText = tostring(self.Value)
-    Render.text({b[1], b[2] + 2}, theme.FontColor, Render.trimText(self.Text, b[3] - 58))
-    Render.text({b[1] + b[3] - Render.textWidth(valueText), b[2] + 2}, theme.AccentColor, valueText)
+    Render.text({b[1] + 1, b[2] + 3}, theme.FontColor, Render.trimText(self.Text, b[3] - 70))
+    Render.text({b[1] + b[3] - Render.textWidth(valueText) - 2, b[2] + 3}, theme.AccentColor, valueText)
 
-    local bx, by, bw, bh = b[1], b[2] + 23, b[3], 10
+    local bx, by, bw, bh = b[1], b[2] + 26, b[3], 12
     if Input:clicked(self.Id, bx, by - 5, bw, bh + 10) or Input.ActiveId == self.Id then
         if Input.MouseDown then
             Input:claim(self.Id)
@@ -1151,13 +1214,14 @@ function Slider:render(theme)
     self.DisplayValue = lerp(self.DisplayValue, self.Value, 1 - math.exp(-18 * DXForge.Runtime.Delta))
     local range = self.Max - self.Min
     local pct = range == 0 and 0 or (self.DisplayValue - self.Min) / range
-    Render.filled({bx, by - 1}, {bx + bw, by + bh + 1}, theme.OutlineColor)
-    Render.filled({bx + 1, by}, {bx + bw - 1, by + bh}, {10, 11, 16})
-    Render.filled({bx + 2, by + 2}, {bx + bw - 2, by + bh - 2}, {20, 22, 29})
-    Render.filled({bx + 2, by + 2}, {bx + 2 + (bw - 4) * pct, by + bh - 2}, blend(theme.GlowColor, theme.AccentColor, 0.45))
+    Render.filled({bx + 1, by + 3}, {bx + bw + 1, by + bh + 3}, theme.ShadowColor)
+    Render.filled({bx, by - 1}, {bx + bw, by + bh + 1}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({bx + 1, by}, {bx + bw - 1, by + bh}, theme.SurfaceDarkColor or {10, 11, 16})
+    Render.filled({bx + 3, by + 3}, {bx + bw - 3, by + bh - 3}, theme.SurfaceColor or {20, 22, 29})
+    Render.filled({bx + 3, by + 3}, {bx + 3 + (bw - 6) * pct, by + bh - 3}, blend(theme.GlowColor, theme.AccentColor, 0.45))
     local knob = bx + bw * pct
-    Render.filled({knob - 5, by - 5}, {knob + 5, by + bh + 5}, {0, 0, 0})
-    Render.filled({knob - 4, by - 4}, {knob + 4, by + bh + 4}, theme.AccentColor)
+    Render.filled({knob - 6, by - 6}, {knob + 6, by + bh + 6}, theme.ShadowColor)
+    Render.filled({knob - 5, by - 5}, {knob + 5, by + bh + 5}, theme.AccentColor)
     Render.filled({knob - 2, by - 2}, {knob + 2, by + bh + 2}, theme.FontColor)
 end
 
@@ -1169,7 +1233,7 @@ function Dropdown:new(groupbox, config, multi)
     object.Values = type(config.Values) == "table" and config.Values or {}
     object.Multi = multi == true
     object.Open = false
-    object.Height = 30
+    object.Height = 32
     object.Selected = object.Multi and {} or (config.Default or object.Values[1])
     if object.Multi and type(config.Default) == "table" then
         for _, value in pairs(config.Default) do object.Selected[value] = true end
@@ -1208,8 +1272,8 @@ function Dropdown:render(theme)
     local b = self.Bounds
     local headerId = self.Id .. ":header"
 
-    Render.text({b[1], b[2] + 1}, theme.FontColor, Render.trimText(self.Text, b[3]))
-    local bx, by, bw, bh = b[1], b[2] + 18, b[3], 22
+    Render.text({b[1] + 1, b[2] + 2}, theme.FontColor, Render.trimText(self.Text, b[3]))
+    local bx, by, bw, bh = b[1], b[2] + 21, b[3], 24
     if Input:clicked(headerId, bx, by, bw, bh) then
         self.Open = not self.Open
         DXForge.Runtime.PopupOwner = self.Open and self or nil
@@ -1218,17 +1282,18 @@ function Dropdown:render(theme)
 
     local openAmount = DXForge:Animate(self.Id .. ":open", self.Open and 1 or 0, 18)
     Render.surface(bx, by, bw, bh, theme, self.Open, self.Hovered)
-    Render.filled({bx + 4, by + bh - 4}, {bx + 4 + (bw - 8) * openAmount, by + bh - 3}, theme.AccentColor)
-    Render.text({bx + 9, by + 5}, self.Open and theme.FontColor or theme.TextMutedColor, Render.trimText(self:displayText(), bw - 34))
-    Render.text({bx + bw - 16, by + 4}, theme.AccentColor, self.Open and "^" or "v")
+    Render.filled({bx + 4, by + bh - 5}, {bx + 4 + (bw - 8) * openAmount, by + bh - 3}, theme.AccentColor)
+    Render.filled({bx + bw - 28, by + 4}, {bx + bw - 27, by + bh - 4}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.text({bx + 10, by + 6}, self.Open and theme.FontColor or theme.TextMutedColor, Render.trimText(self:displayText(), bw - 42))
+    Render.text({bx + bw - 18, by + 5}, theme.AccentColor, self.Open and "^" or "v")
 
     if openAmount > 0.02 then
-        local itemHeight = 20
+        local itemHeight = 22
         local visibleCount = math.min(#self.Values, 8)
         local ph = visibleCount * itemHeight * openAmount
-        Render.filled({bx + 3, by + bh + 6}, {bx + bw + 3, by + bh + 6 + ph}, {0, 0, 0})
+        Render.filled({bx + 4, by + bh + 7}, {bx + bw + 4, by + bh + 7 + ph}, theme.ShadowColor)
         Render.filled({bx, by + bh + 2}, {bx + bw, by + bh + 2 + ph}, theme.OutlineColor)
-        Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, {7, 8, 12})
+        Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, theme.SurfaceDarkColor or {7, 8, 12})
         Render.filled({bx + 2, by + bh + 3}, {bx + bw - 2, by + bh + 4}, theme.AccentColor)
         if self.Open then
             Input:claim(self.Id)
@@ -1244,7 +1309,7 @@ function Dropdown:render(theme)
                 if selected then
                     Render.filled({bx + 3, iy + 3}, {bx + 5, iy + itemHeight - 3}, theme.AccentColor)
                 end
-                Render.text({bx + 10, iy + 3}, selected and theme.AccentColor or theme.FontColor, Render.trimText(tostring(value), bw - 18))
+                Render.text({bx + 11, iy + 4}, selected and theme.AccentColor or theme.FontColor, Render.trimText(tostring(value), bw - 20))
                 if Input:clicked(itemId, bx + 1, iy, bw - 2, itemHeight) then
                     self:setSelected(value)
                 end
@@ -1255,7 +1320,7 @@ function Dropdown:render(theme)
 end
 
 function Dropdown:layout(x, y, w)
-    self.Bounds = {x, y, w, self.Open and (48 + math.min(#self.Values, 8) * 20) or 42}
+    self.Bounds = {x, y, w, self.Open and (52 + math.min(#self.Values, 8) * 22) or 47}
     return self.Bounds[4]
 end
 
@@ -1267,7 +1332,7 @@ function Textbox:new(groupbox, config)
     object.Placeholder = tostring(config.Placeholder or "Enter text...")
     object.Value = tostring(config.Default or "")
     object.ClearButton = config.ClearButton ~= false
-    object.Height = 42
+    object.Height = 46
     return object
 end
 
@@ -1293,8 +1358,8 @@ end
 function Textbox:render(theme)
     self:updateHover()
     local b = self.Bounds
-    Render.text({b[1], b[2] + 1}, theme.FontColor, Render.trimText(self.Text, b[3]))
-    local bx, by, bw, bh = b[1], b[2] + 18, b[3], 20
+    Render.text({b[1] + 1, b[2] + 2}, theme.FontColor, Render.trimText(self.Text, b[3]))
+    local bx, by, bw, bh = b[1], b[2] + 21, b[3], 24
     if Input:clicked(self.Id, bx, by, bw, bh) then
         Input.FocusText = self
     end
@@ -1318,9 +1383,9 @@ function Textbox:render(theme)
 
     local active = Input.FocusText == self
     Render.surface(bx, by, bw, bh, theme, active, self.Hovered)
-    Render.filled({bx + 4, by + bh - 4}, {bx + bw - 4, by + bh - 3}, active and theme.AccentColor or {33, 35, 44})
+    Render.filled({bx + 4, by + bh - 5}, {bx + bw - 4, by + bh - 3}, active and theme.AccentColor or (theme.BorderSoftColor or {33, 35, 44}))
     local shown = self.Value ~= "" and self.Value or self.Placeholder
-    Render.text({bx + 8, by + 4}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 16))
+    Render.text({bx + 10, by + 6}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 20))
 end
 
 local Keybind = setmetatable({}, Component)
@@ -1332,6 +1397,7 @@ function Keybind:new(groupbox, config)
     object.Mode = tostring(config.Mode or "Toggle")
     object.Reading = false
     object.State = false
+    object.Height = config.Height or 32
     return object
 end
 
@@ -1357,8 +1423,8 @@ end
 function Keybind:render(theme)
     self:updateHover()
     local b = self.Bounds
-    Render.text({b[1], b[2] + 5}, theme.FontColor, Render.trimText(self.Text, b[3] - 82))
-    local bx, by, bw, bh = b[1] + b[3] - 78, b[2] + 3, 76, 20
+    Render.text({b[1] + 1, b[2] + 9}, theme.FontColor, Render.trimText(self.Text, b[3] - 94))
+    local bx, by, bw, bh = b[1] + b[3] - 88, b[2] + 4, 86, 24
     if Input:clicked(self.Id, bx, by, bw, bh) then
         self.Reading = true
     end
@@ -1381,9 +1447,9 @@ function Keybind:render(theme)
 
     Render.surface(bx, by, bw, bh, theme, self.Reading or self.State, self.Hovered)
     if self.Reading or self.State then
-        Render.filled({bx + 3, by + bh - 4}, {bx + bw - 3, by + bh - 3}, theme.AccentColor)
+        Render.filled({bx + 4, by + bh - 5}, {bx + bw - 4, by + bh - 3}, theme.AccentColor)
     end
-    Render.text({bx + 6, by + 4}, self.State and theme.AccentColor or theme.TextMutedColor, Render.trimText(self.Reading and "Press key" or self.Key, bw - 12))
+    Render.text({bx + 8, by + 6}, self.State and theme.AccentColor or theme.TextMutedColor, Render.trimText(self.Reading and "Press key" or self.Key, bw - 16))
 end
 
 local ColorPicker = setmetatable({}, Component)
@@ -1396,7 +1462,7 @@ function ColorPicker:new(groupbox, config)
     object.Alpha = object.Value[4] or 255
     object.Open = false
     object.WithAlpha = config.Alpha == true
-    object.Height = 30
+    object.Height = 34
     return object
 end
 
@@ -1418,14 +1484,14 @@ end
 function ColorPicker:render(theme)
     self:updateHover()
     local b = self.Bounds
-    Render.text({b[1], b[2] + 5}, theme.FontColor, Render.trimText(self.Text, b[3] - 76))
+    Render.text({b[1] + 1, b[2] + 9}, theme.FontColor, Render.trimText(self.Text, b[3] - 84))
 
-    local sx, sy, sw, sh = b[1] + b[3] - 68, b[2] + 4, 30, 17
+    local sx, sy, sw, sh = b[1] + b[3] - 74, b[2] + 5, 36, 22
     Render.filled({sx - 1, sy - 1}, {sx + sw + 1, sy + sh + 1}, self.Open and theme.AccentColor or theme.OutlineColor)
     Render.filled({sx, sy}, {sx + sw, sy + sh}, {0, 0, 0})
     Render.filled({sx, sy}, {sx + sw, sy + sh}, self.Value)
     Render.filled({sx + 2, sy + 2}, {sx + sw - 2, sy + 3}, {255, 255, 255})
-    Render.text({sx + sw + 8, sy - 1}, theme.TextMutedColor, "...")
+    Render.text({sx + sw + 8, sy + 2}, theme.TextMutedColor, "...")
 
     if Input:clicked(self.Id, sx - 2, sy - 2, 64, 22) then
         self.Open = not self.Open
@@ -1435,8 +1501,8 @@ function ColorPicker:render(theme)
 
     local open = DXForge:Animate(self.Id .. ":open", self.Open and 1 or 0, 18)
     if open > 0.02 then
-        local px, py = b[1], b[2] + 28
-        local pw, ph = b[3], (self.WithAlpha and 124 or 106) * open
+        local px, py = b[1], b[2] + 33
+        local pw, ph = b[3], (self.WithAlpha and 128 or 110) * open
         Render.filled({px + 4, py + 5}, {px + pw + 4, py + ph + 5}, {0, 0, 0})
         Render.filled({px, py}, {px + pw, py + ph}, theme.OutlineColor)
         Render.filled({px + 1, py + 1}, {px + pw - 1, py + ph - 1}, {7, 8, 12})
@@ -1445,8 +1511,8 @@ function ColorPicker:render(theme)
 
         if self.Open then
             Input:claim(self.Id)
-            local areaX, areaY, areaW, areaH = px + 8, py + 9, pw - 26, 72
-            local hueX, hueY, hueW, hueH = px + pw - 13, py + 9, 5, 72
+            local areaX, areaY, areaW, areaH = px + 10, py + 12, pw - 31, 72
+            local hueX, hueY, hueW, hueH = px + pw - 15, py + 12, 6, 72
             local currentHue = hsvToRgb(self.Hue, 1, 1)
 
             local steps = 16
@@ -1483,15 +1549,15 @@ function ColorPicker:render(theme)
             Render.box({markerX - 2, markerY - 2}, {markerX + 2, markerY + 2}, theme.FontColor)
             Render.line({hueX - 3, hueY + self.Hue * hueH}, {hueX + hueW + 3, hueY + self.Hue * hueH}, theme.FontColor)
 
-            Render.surface(px + 8, py + 88, pw - 16, 17, theme, false, false)
-            Render.filled({px + 11, py + 92}, {px + 18, py + 101}, currentHue)
-            Render.text({px + 24, py + 90}, theme.FontColor, rgbToHex(self.Value) .. "  RGB(" .. math.floor(self.Value[1]) .. ", " .. math.floor(self.Value[2]) .. ", " .. math.floor(self.Value[3]) .. ")")
+            Render.surface(px + 8, py + 90, pw - 16, 20, theme, false, false)
+            Render.filled({px + 12, py + 95}, {px + 21, py + 104}, currentHue)
+            Render.text({px + 28, py + 93}, theme.FontColor, rgbToHex(self.Value) .. "  RGB(" .. math.floor(self.Value[1]) .. ", " .. math.floor(self.Value[2]) .. ", " .. math.floor(self.Value[3]) .. ")")
         end
     end
 end
 
 function ColorPicker:layout(x, y, w)
-    self.Bounds = {x, y, w, self.Open and (self.WithAlpha and 154 or 136) or 30}
+    self.Bounds = {x, y, w, self.Open and (self.WithAlpha and 164 or 146) or 34}
     return self.Bounds[4]
 end
 
@@ -1667,35 +1733,38 @@ function Groupbox:AddColorPicker(config)
 end
 
 function Groupbox:measure(width)
-    local height = 34
+    local height = DXForge.Design.SectionHeader + 8
     for _, component in ipairs(self.Components) do
         if component.Visible then
-            height = height + component:layout(0, 0, width - 22) + 7
+            height = height + component:layout(0, 0, width - 28) + DXForge.Design.ComponentGap
         end
     end
-    return math.max(height + 6, 52)
+    return math.max(height + 8, 60)
 end
 
 function Groupbox:render(theme, x, y, w)
     if not self.Visible then return 0 end
     local h = self:measure(w)
     self.Bounds = {x, y, w, h}
-    Render.filled({x + 3, y + 4}, {x + w + 3, y + h + 4}, {0, 0, 0})
-    Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {7, 8, 12})
-    Render.filled({x + 2, y + 2}, {x + w - 2, y + 29}, blend(theme.PanelColor, {34, 36, 47}, 0.52))
-    Render.accentLine(x + 2, y + 2, w - 4, theme, true)
-    Render.filled({x + 2, y + 30}, {x + w - 2, y + h - 2}, theme.BackgroundColor)
-    Render.filled({x + 8, y + 34}, {x + 9, y + h - 9}, {33, 35, 45})
-    Render.filled({x + 11, y + 10}, {x + 15, y + 19}, theme.AccentColor)
-    Render.text({x + 22, y + 8}, theme.FontColor, Render.trimText(self.Title, w - 34))
+    Render.filled({x + 5, y + 6}, {x + w + 5, y + h + 6}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 34}, theme.HeaderDarkColor or theme.PanelColor)
+    Render.filled({x + 2, y + 35}, {x + w - 2, y + h - 2}, theme.SurfaceColor or theme.BackgroundColor)
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
+    Render.filled({x + 3, y + 4}, {x + 88, y + 5}, theme.GlowColor)
+    Render.filled({x + 13, y + 12}, {x + 18, y + 23}, theme.AccentColor)
+    Render.filled({x + 21, y + 12}, {x + 22, y + 23}, theme.GlowColor)
+    Render.text({x + 30, y + 10}, theme.TextHeaderColor or theme.FontColor, Render.trimText(self.Title, w - 48))
+    Render.filled({x + 12, y + 42}, {x + 13, y + h - 12}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({x + w - 14, y + 42}, {x + w - 13, y + h - 12}, {10, 12, 18})
 
-    local cursor = y + 38
+    local cursor = y + 46
     for _, component in ipairs(self.Components) do
         if component.Visible then
-            local rowHeight = component:layout(x + 12, cursor, w - 24)
+            local rowHeight = component:layout(x + 16, cursor, w - 32)
             component:render(theme)
-            cursor = cursor + rowHeight + 7
+            cursor = cursor + rowHeight + DXForge.Design.ComponentGap
         end
     end
     return h
@@ -1792,7 +1861,7 @@ function Tab:Focus()
 end
 
 function Tab:render(theme, x, y, w, h)
-    local gutter = 12
+    local gutter = 14
     local columnW = math.floor((w - gutter) / 2)
     local leftY, rightY, fullY = y, y, y
 
@@ -1972,7 +2041,7 @@ function Window:BringToFront()
 end
 
 function Window:contentRect()
-    return self.Position[1] + 13, self.Position[2] + 62, self.Size[1] - 26, self.Size[2] - (self.Footer and 76 or 50)
+    return self.Position[1] + 14, self.Position[2] + 76, self.Size[1] - 28, self.Size[2] - (self.Footer and 94 or 68)
 end
 
 function Window:handleInput(theme)
@@ -2020,14 +2089,15 @@ function Window:handleInput(theme)
 end
 
 function Window:renderTabs(theme)
-    local x, y = self.Position[1] + 12, self.Position[2] + 34
+    local x, y = self.Position[1] + 14, self.Position[2] + 40
     local cursor = x
-    local maxX = self.Position[1] + self.Size[1] - 10
-    Render.filled({x - 2, y - 4}, {maxX, y + DXForge.Config.TabHeight + 4}, {9, 10, 15})
-    Render.filled({x - 2, y + DXForge.Config.TabHeight + 4}, {maxX, y + DXForge.Config.TabHeight + 5}, theme.OutlineColor)
+    local maxX = self.Position[1] + self.Size[1] - 14
+    Render.filled({x - 3, y - 5}, {maxX, y + DXForge.Config.TabHeight + 5}, theme.SurfaceDarkColor or {9, 10, 15})
+    Render.filled({x - 3, y - 5}, {maxX, y - 4}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({x - 3, y + DXForge.Config.TabHeight + 4}, {maxX, y + DXForge.Config.TabHeight + 5}, theme.OutlineColor)
 
     for index, tab in ipairs(self.Tabs) do
-        local tw = math.min(Render.textWidth(tab.Name) + 30, 132)
+        local tw = math.min(Render.textWidth(tab.Name) + 34, 140)
         if cursor + tw > maxX then break end
         local active = self.ActiveTab == tab
         local id = self.Id .. ":tab:" .. tostring(index)
@@ -2040,13 +2110,14 @@ function Window:renderTabs(theme)
         local hovered = Input:hover(cursor, y, tw, DXForge.Config.TabHeight)
         local hover = DXForge:Animate(id .. ":hover", hovered and 1 or 0, 16)
         Render.surface(cursor, y, tw, DXForge.Config.TabHeight, theme, active, hovered)
-        Render.filled({cursor + 2, y + 2}, {cursor + tw - 2, y + DXForge.Config.TabHeight - 2}, blend(blend(theme.BackgroundColor, theme.PanelColor, t), theme.HoverColor, hover * 0.45))
+        Render.filled({cursor + 2, y + 2}, {cursor + tw - 2, y + DXForge.Config.TabHeight - 2}, blend(blend(theme.SurfaceDarkColor or theme.BackgroundColor, theme.PanelColor, t), theme.HoverColor, hover * 0.45))
         Render.filled({cursor + 4, y + 5}, {cursor + 5, y + DXForge.Config.TabHeight - 5}, active and theme.AccentColor or blend(theme.OutlineColor, theme.AccentColor, hover * 0.5))
         if active then
             Render.filled({cursor + 2, y + 2}, {cursor + tw - 2, y + 4}, theme.AccentColor)
             Render.filled({cursor + 8, y + DXForge.Config.TabHeight - 3}, {cursor + tw - 8, y + DXForge.Config.TabHeight - 1}, theme.GlowColor)
+            Render.filled({cursor + 7, y + 6}, {cursor + tw - 7, y + 7}, theme.AccentDimColor or theme.AccentColor)
         end
-        Render.text({cursor + 13, y + 7}, active and theme.FontColor or theme.TextMutedColor, Render.trimText(tab.Name, tw - 24))
+        Render.text({cursor + 14, y + 8}, active and (theme.TextHeaderColor or theme.FontColor) or theme.TextMutedColor, Render.trimText(tab.Name, tw - 26))
         cursor = cursor + tw + 7
     end
 end
@@ -2055,14 +2126,15 @@ function Window:renderFooter(theme)
     if not self.Footer then return end
     local x, y = self.Position[1], self.Position[2]
     local w, h = self.Size[1], self.Size[2]
-    local footerY = y + h - 28
-    Render.filled({x + 2, footerY - 1}, {x + w - 2, y + h - 2}, {10, 11, 16})
-    Render.filled({x + 8, footerY - 2}, {x + w - 8, footerY - 1}, theme.OutlineColor)
-    Render.filled({x + 8, footerY - 1}, {x + 104, footerY}, theme.AccentColor)
-    Render.filled({x + 12, footerY + 9}, {x + 17, footerY + 14}, theme.AccentColor)
-    Render.text({x + 23, footerY + 5}, theme.TextMutedColor, "DXForge " .. DXForge.__DXFORGE_VERSION)
+    local footerY = y + h - 32
+    Render.filled({x + 3, footerY - 1}, {x + w - 3, y + h - 3}, theme.HeaderDarkColor or {10, 11, 16})
+    Render.filled({x + 10, footerY - 3}, {x + w - 10, footerY - 2}, theme.OutlineColor)
+    Render.filled({x + 10, footerY - 2}, {x + 126, footerY - 1}, theme.AccentColor)
+    Render.filled({x + 14, footerY + 10}, {x + 20, footerY + 16}, theme.AccentColor)
+    Render.filled({x + 23, footerY + 12}, {x + 46, footerY + 13}, theme.AccentDimColor or theme.AccentColor)
+    Render.text({x + 52, footerY + 6}, theme.TextMutedColor, "DXForge " .. DXForge.__DXFORGE_VERSION)
     local keyText = self.ToggleKey and ("Toggle: " .. self.ToggleKey) or "Ready"
-    Render.text({x + w - Render.textWidth(keyText) - 12, footerY + 5}, theme.TextMutedColor, keyText)
+    Render.text({x + w - Render.textWidth(keyText) - 14, footerY + 6}, theme.TextMutedColor, keyText)
 end
 
 function Window:render()
@@ -2075,12 +2147,13 @@ function Window:render()
     local x, y = self.Position[1], self.Position[2]
     local w, h = self.Size[1], self.Size[2]
     Render.panel(x, y, w, h, theme, true)
-    Render.filled({x + 2, y + 6}, {x + w - 2, y + DXForge.Config.HeaderHeight + 3}, blend(theme.MainColor, theme.PanelColor, 0.35))
-    Render.filled({x + 12, y + 8}, {x + 17, y + 22}, theme.AccentColor)
-    Render.filled({x + 19, y + 8}, {x + 20, y + 22}, theme.GlowColor)
-    Render.text({x + 28, y + 8}, theme.FontColor, Render.trimText(self.Title, w - 120))
-    Render.filled({x + w - 92, y + 11}, {x + w - 18, y + 12}, {51, 53, 65})
-    Render.filled({x + w - 92, y + 16}, {x + w - 38, y + 17}, theme.AccentColor)
+    Render.filled({x + 3, y + 7}, {x + w - 3, y + DXForge.Config.HeaderHeight + 5}, blend(theme.HeaderColor or theme.MainColor, theme.PanelColor, 0.28))
+    Render.filled({x + 14, y + 10}, {x + 20, y + 26}, theme.AccentColor)
+    Render.filled({x + 23, y + 10}, {x + 24, y + 26}, theme.GlowColor)
+    Render.text({x + 34, y + 10}, theme.TextHeaderColor or theme.FontColor, Render.trimText(self.Title, w - 146))
+    Render.filled({x + w - 126, y + 12}, {x + w - 18, y + 13}, theme.BorderStrongColor or {51, 53, 65})
+    Render.filled({x + w - 126, y + 18}, {x + w - 58, y + 19}, theme.AccentColor)
+    Render.filled({x + w - 50, y + 16}, {x + w - 18, y + 17}, theme.AccentDimColor or theme.AccentColor)
 
     self:renderTabs(theme)
 
@@ -2089,14 +2162,15 @@ function Window:render()
     Render.contentTexture(cx, cy, cw, ch, theme)
 
     if self.ActiveTab then
-        self.ActiveTab:render(theme, cx + 12, cy + 13, cw - 24, ch - 26)
+        self.ActiveTab:render(theme, cx + 14, cy + 15, cw - 28, ch - 30)
     end
 
     if self.Resizable then
-        Render.filled({x + w - 22, y + h - 22}, {x + w - 6, y + h - 6}, {9, 10, 15})
-        Render.line({x + w - 17, y + h - 7}, {x + w - 7, y + h - 17}, theme.OutlineColor)
-        Render.line({x + w - 13, y + h - 7}, {x + w - 7, y + h - 13}, theme.AccentColor)
-        Render.line({x + w - 9, y + h - 7}, {x + w - 7, y + h - 9}, theme.GlowColor)
+        Render.filled({x + w - 27, y + h - 27}, {x + w - 7, y + h - 7}, theme.SurfaceDarkColor or {9, 10, 15})
+        Render.filled({x + w - 25, y + h - 25}, {x + w - 8, y + h - 24}, theme.BorderSoftColor or theme.OutlineColor)
+        Render.line({x + w - 20, y + h - 8}, {x + w - 8, y + h - 20}, theme.OutlineColor)
+        Render.line({x + w - 15, y + h - 8}, {x + w - 8, y + h - 15}, theme.AccentColor)
+        Render.line({x + w - 10, y + h - 8}, {x + w - 8, y + h - 10}, theme.GlowColor)
     end
 
     self:renderFooter(theme)
@@ -2174,12 +2248,12 @@ function DXForge:renderNotifications(theme)
         if age <= notification.Duration then
             table.insert(kept, notification)
             local lines = splitLines(notification.Text)
-            local width = 230
+            local width = 250
             for _, line in ipairs(lines) do
-                width = math.max(width, Render.textWidth(line) + 34)
+                width = math.max(width, Render.textWidth(line) + 44)
             end
             width = math.min(width, 420)
-            local height = 26 + (#lines - 1) * 17
+            local height = 34 + (#lines - 1) * 17
             local enter = easeOutCubic(clamp(age / 0.32, 0, 1))
             local leave = 1 - easeOutCubic(clamp((age - notification.Duration + 0.35) / 0.35, 0, 1))
             local alpha = math.min(enter, leave)
@@ -2189,17 +2263,18 @@ function DXForge:renderNotifications(theme)
             elseif notification.Type == "Warning" then color = theme.WarningColor
             elseif notification.Type == "Error" then color = theme.ErrorColor end
 
-            Render.filled({x + 5, y + 6}, {x + width + 5, y + height + 6}, {0, 0, 0})
-            Render.filled({x, y}, {x + width, y + height}, theme.OutlineColor)
-            Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, {7, 8, 12})
-            Render.filled({x + 2, y + 2}, {x + width - 2, y + 19}, blend(theme.PanelColor, {34, 36, 46}, 0.5))
+            Render.filled({x + 6, y + 8}, {x + width + 6, y + height + 8}, theme.ShadowColor)
+            Render.filled({x, y}, {x + width, y + height}, theme.BorderStrongColor or theme.OutlineColor)
+            Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+            Render.filled({x + 2, y + 2}, {x + width - 2, y + 23}, blend(theme.HeaderColor or theme.PanelColor, {34, 36, 46}, 0.5))
             Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, color)
-            Render.filled({x + 1, y + 1}, {x + 5, y + height - 1}, color)
+            Render.filled({x + 1, y + 1}, {x + 6, y + height - 1}, color)
+            Render.filled({x + 12, y + 11}, {x + 17, y + 16}, color)
             local progress = clamp(age / notification.Duration, 0, 1)
-            Render.filled({x + 4, y + height - 3}, {x + 4 + (width - 5) * (1 - progress), y + height - 1}, color)
+            Render.filled({x + 6, y + height - 4}, {x + 6 + (width - 8) * (1 - progress), y + height - 2}, color)
 
             for index, line in ipairs(lines) do
-                Render.text({x + 14, y + 6 + (index - 1) * 17}, index == 1 and theme.FontColor or theme.TextMutedColor, Render.trimText(line, width - 26))
+                Render.text({x + 24, y + 7 + (index - 1) * 17}, index == 1 and theme.FontColor or theme.TextMutedColor, Render.trimText(line, width - 34))
             end
             y = y + height + 8
         end
@@ -2220,19 +2295,19 @@ function DXForge:renderTooltip(theme)
     for _, line in ipairs(lines) do
         width = math.max(width, Render.textWidth(line))
     end
-    width = width + 14
-    local height = 10 + #lines * 16
+    width = width + 20
+    local height = 12 + #lines * 16
     local sw, sh = Render.screen()
     local x = clamp(Input.Mouse.x + 14, 4, sw - width - 4)
     local y = clamp(Input.Mouse.y + 16, 4, sh - height - 4)
 
-    Render.filled({x + 3, y + 4}, {x + width + 3, y + height + 4}, {0, 0, 0})
+    Render.filled({x + 4, y + 5}, {x + width + 4, y + height + 5}, theme.ShadowColor)
     Render.filled({x, y}, {x + width, y + height}, theme.AccentColor)
-    Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, {7, 8, 12})
+    Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.SurfaceDarkColor or {7, 8, 12})
     Render.filled({x + 2, y + 4}, {x + 4, y + height - 3}, theme.AccentColor)
     Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, theme.GlowColor)
     for index, line in ipairs(lines) do
-        Render.text({x + 9, y + 5 + (index - 1) * 16}, theme.FontColor, line)
+        Render.text({x + 11, y + 6 + (index - 1) * 16}, theme.FontColor, line)
     end
 end
 
@@ -2266,12 +2341,14 @@ function DXForge:renderWatermark(theme)
     if not self.Watermark or not self.Watermark.Visible then return end
     local text = self.Watermark.Text
     local x, y = self.Watermark.Position[1], self.Watermark.Position[2]
-    local w = Render.textWidth(text) + 22
-    Render.filled({x + 2, y + 3}, {x + w + 2, y + 27}, {0, 0, 0})
-    Render.filled({x, y}, {x + w, y + 24}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + 23}, theme.PanelColor)
-    Render.filled({x + 1, y + 1}, {x + 4, y + 23}, theme.AccentColor)
-    Render.text({x + 11, y + 5}, theme.FontColor, text)
+    local w = Render.textWidth(text) + 34
+    Render.filled({x + 4, y + 5}, {x + w + 4, y + 31}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + 28}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + 27}, theme.SurfaceDarkColor or theme.PanelColor)
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
+    Render.filled({x + 8, y + 10}, {x + 13, y + 16}, theme.AccentColor)
+    Render.filled({x + 16, y + 12}, {x + 34, y + 13}, theme.AccentDimColor or theme.AccentColor)
+    Render.text({x + 38, y + 7}, theme.FontColor, text)
 end
 
 --// Startup Screen ------------------------------------------------------------
