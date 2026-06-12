@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.1" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.3" then
     return DXForge
 end
 
@@ -133,7 +133,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.1",
+    __DXFORGE_VERSION = "1.0.3",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -159,7 +159,9 @@ DXForge = {
     },
     Logo = {
         Source = "DXForge.png",
+        LocalSources = {"DXForge.png", "./DXForge.png", "assets/DXForgeSingle.png"},
         RemoteSource = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
+        CachePath = "DXForgeLogoCache.png",
         Asset = nil,
         Loaded = false,
         Failed = false,
@@ -181,6 +183,10 @@ DXForge = {
         StartupDuration = 3.15,
         TooltipDelay = 0.25
     }
+}
+
+DXForge.AssetLoader = {
+    LogoRatio = 266 / 58
 }
 
 --// Helpers / Utilities -------------------------------------------------------
@@ -527,6 +533,58 @@ function Render.surface(x, y, w, h, theme, active, hovered)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, active and theme.GlowColor or {42, 44, 55})
 end
 
+function Render.fitRect(x, y, w, h, ratio)
+    ratio = ratio or 1
+    local targetW = w
+    local targetH = targetW / ratio
+    if targetH > h then
+        targetH = h
+        targetW = targetH * ratio
+    end
+    return x + ((w - targetW) / 2), y + ((h - targetH) / 2), targetW, targetH
+end
+
+function DXForge.AssetLoader:warn(message)
+    if DXForge.Debug then
+        print("[DXForge:AssetLoader] " .. tostring(message))
+    end
+end
+
+function DXForge.AssetLoader:writeCache(path, data)
+    if not (io and io.open) or type(data) ~= "string" or data == "" then
+        return false
+    end
+
+    local ok, file = pcall(io.open, path, "wb")
+    if not ok or not file then return false end
+    file:write(data)
+    file:close()
+    return true
+end
+
+function DXForge.AssetLoader:getLogoSources()
+    local logo = DXForge.Logo
+    local sources = {}
+
+    if type(logo.LocalSources) == "table" then
+        for _, source in ipairs(logo.LocalSources) do
+            table.insert(sources, {Kind = "path", Value = source})
+        end
+    elseif logo.Source then
+        table.insert(sources, {Kind = "path", Value = logo.Source})
+    end
+
+    if logo.CachePath then
+        table.insert(sources, {Kind = "path", Value = logo.CachePath})
+    end
+
+    if logo.RemoteSource then
+        table.insert(sources, {Kind = "remote", Value = logo.RemoteSource})
+    end
+
+    return sources
+end
+
 function Render.drawImageCandidate(image, x, y, w, h, color)
     if not (dx9 and dx9.DrawImage) or image == nil then return false end
 
@@ -550,7 +608,7 @@ function Render.drawImageCandidate(image, x, y, w, h, color)
     return false
 end
 
-function Render.logo(x, y, w, h, color)
+function DXForge.AssetLoader:drawLogo(x, y, w, h, color)
     local logo = DXForge.Logo
     if not (dx9 and dx9.DrawImage) then
         logo.Status = "unsupported"
@@ -573,36 +631,42 @@ function Render.logo(x, y, w, h, color)
         logo.Status = "loading"
     end
 
-    local sources = {
-        logo.Source,
-        "./" .. tostring(logo.Source),
-        "assets/DXForgeSingle.png",
-        logo.RemoteSource
-    }
+    for _, source in ipairs(self:getLogoSources()) do
+        local key = tostring(source.Kind) .. ":" .. tostring(source.Value)
+        if source.Value and not logo.Attempts[key] then
+            logo.Attempts[key] = true
+            local asset = source.Value
 
-    for _, source in ipairs(sources) do
-        if source and not logo.Attempts[source] then
-            logo.Attempts[source] = true
-            local asset = source
-
-            if string.sub(tostring(source), 1, 4) == "http" then
+            if source.Kind == "remote" then
                 if dx9.Get then
-                    local ok, body = dxSafeCall(dx9.Get, source)
+                    local ok, body = dxSafeCall(dx9.Get, source.Value)
                     if ok and body and body ~= "" then
                         asset = body
+                        if logo.CachePath and self:writeCache(logo.CachePath, body) then
+                            if Render.drawImageCandidate(logo.CachePath, x, y, w, h, color) then
+                                logo.Asset = logo.CachePath
+                                logo.ActiveSource = logo.CachePath
+                                logo.Loaded = true
+                                logo.Failed = false
+                                logo.Status = "loaded"
+                                return true, logo.Status
+                            end
+                        end
                     else
-                        logo.LastError = "dx9.Get failed for " .. tostring(source)
+                        logo.LastError = "dx9.Get failed for " .. tostring(source.Value)
+                        self:warn(logo.LastError)
                         asset = nil
                     end
                 else
-                    logo.LastError = "dx9.Get is not available for " .. tostring(source)
+                    logo.LastError = "dx9.Get is not available for " .. tostring(source.Value)
+                    self:warn(logo.LastError)
                     asset = nil
                 end
             end
 
             if asset and Render.drawImageCandidate(asset, x, y, w, h, color) then
                 logo.Asset = asset
-                logo.ActiveSource = source
+                logo.ActiveSource = source.Value
                 logo.Loaded = true
                 logo.Failed = false
                 logo.Status = "loaded"
@@ -615,6 +679,7 @@ function Render.logo(x, y, w, h, color)
         logo.Status = "failed"
         logo.Failed = true
         logo.LastError = logo.LastError or "No DXForge logo source could be rendered"
+        self:warn(logo.LastError)
         return false, logo.Status
     end
 
@@ -2089,6 +2154,33 @@ end
 
 --// Startup Screen ------------------------------------------------------------
 
+function DXForge:renderLogoFallback(x, y, w, h, theme, status)
+    local loading = status == "loading"
+    local text = loading and "Loading Logo..." or "DXForge"
+    local textWidth = Render.textWidth(text)
+    local centerX = x + (w / 2)
+    local centerY = y + (h / 2)
+    local pulse = self:Pulse(5)
+
+    Render.filled({x, y}, {x + w, y + h}, {7, 8, 12})
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {13, 14, 20})
+    Render.box({x, y}, {x + w, y + h}, loading and theme.OutlineColor or blend(theme.AccentColor, theme.GlowColor, pulse))
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, loading and theme.OutlineColor or theme.AccentColor)
+
+    if not loading then
+        local iconX = centerX - (textWidth / 2) - 32
+        local iconY = centerY - 11
+        Render.filled({iconX, iconY}, {iconX + 22, iconY + 22}, {0, 0, 0})
+        Render.box({iconX, iconY}, {iconX + 22, iconY + 22}, theme.AccentColor)
+        Render.line({iconX + 5, iconY + 6}, {iconX + 17, iconY + 16}, theme.GlowColor)
+        Render.line({iconX + 17, iconY + 6}, {iconX + 5, iconY + 16}, theme.AccentColor)
+        Render.text({centerX - (textWidth / 2), centerY - 8}, theme.FontColor, text)
+        Render.text({centerX - (textWidth / 2) - 1, centerY - 8}, theme.AccentColor, "DX")
+    else
+        Render.text({centerX - (textWidth / 2), centerY - 8}, theme.TextMutedColor, text)
+    end
+end
+
 function DXForge:renderStartup(theme)
     local startup = self.Startup
     if not startup or startup.Done then return false end
@@ -2114,20 +2206,14 @@ function DXForge:renderStartup(theme)
     Render.line({x + sweep, y + 3}, {x + sweep + 46, y + 3}, theme.GlowColor)
     Render.line({x + bw - sweep, y + bh - 4}, {x + bw - sweep - 46, y + bh - 4}, theme.AccentColor)
 
-    local logoX = x + 62 * scale
-    local logoY = y + 34 * scale
-    local logoW = 266 * scale
-    local logoH = 58 * scale
-    local logoDrawn, logoStatus = Render.logo(logoX, logoY, logoW, logoH, {255, 255, 255})
+    local logoBoxX = x + 52 * scale
+    local logoBoxY = y + 30 * scale
+    local logoBoxW = 286 * scale
+    local logoBoxH = 66 * scale
+    local logoX, logoY, logoW, logoH = Render.fitRect(logoBoxX, logoBoxY, logoBoxW, logoBoxH, self.AssetLoader.LogoRatio)
+    local logoDrawn, logoStatus = self.AssetLoader:drawLogo(logoX, logoY, logoW, logoH, {255, 255, 255})
     if not logoDrawn then
-        local fallbackText = logoStatus == "loading" and "Loading Logo..." or "DXForge"
-        local fallbackWidth = Render.textWidth(fallbackText)
-        Render.filled({logoX, logoY}, {logoX + logoW, logoY + logoH}, {7, 8, 12})
-        Render.box({logoX, logoY}, {logoX + logoW, logoY + logoH}, logoStatus == "loading" and theme.OutlineColor or theme.AccentColor)
-        Render.text({x + (bw / 2) - (fallbackWidth / 2), y + 48 * scale}, logoStatus == "loading" and theme.TextMutedColor or theme.FontColor, fallbackText)
-        if logoStatus ~= "loading" then
-            Render.text({x + (bw / 2) - (fallbackWidth / 2) - 1, y + 48 * scale}, theme.AccentColor, "DX")
-        end
+        self:renderLogoFallback(logoX, logoY, logoW, logoH, theme, logoStatus)
     end
 
     local messages = {"Initializing DXForge...", "Loading Interface...", "Preparing UI Components..."}
