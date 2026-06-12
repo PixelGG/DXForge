@@ -24,7 +24,7 @@ Startup hides the window until the intro completes. This is intentional DXForge 
 
 ## Logo Does Not Render
 
-Some DX9 environments do not support `dx9.DrawImage` or local image loading. DXForge falls back to text branding automatically.
+Some DX9 environments do not expose `dx9.DrawImage`; the official DX9WARE drawing docs list line/string/circle/box drawing, but not image drawing. DXForge tries local and fallback logo sources first, then falls back to text branding automatically.
 
 ## Clicks Hit The Wrong Window
 

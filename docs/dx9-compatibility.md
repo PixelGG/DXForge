@@ -28,6 +28,8 @@ DXForge uses this Cult-of-Intellect-style DX9 Lua API surface:
 | --- | --- |
 | `dx9.DrawImage(...)` | Startup logo falls back to text branding. |
 
+`dx9.DrawImage` is treated as optional because it is not listed on the official DX9WARE drawing functions page. DXForge will attempt multiple possible image call signatures when it exists.
+
 ## Correct Loading Pattern
 
 DX9WARE:

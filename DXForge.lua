@@ -161,7 +161,14 @@ DXForge = {
         Source = "DXForge.png",
         RemoteSource = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
         Asset = nil,
-        TriedLoad = false
+        Loaded = false,
+        Failed = false,
+        Status = "idle",
+        ActiveSource = nil,
+        Attempts = {},
+        LoadStartedAt = nil,
+        LoadTimeout = 1.25,
+        LastError = nil
     },
     Config = {
         FontHeight = 16,
@@ -331,20 +338,20 @@ end
 --// Theme System --------------------------------------------------------------
 
 DXForge.Themes.Default = {
-    FontColor = {235, 236, 244},
-    MainColor = {19, 20, 25},
-    BackgroundColor = {10, 11, 15},
-    AccentColor = {178, 84, 255},
-    OutlineColor = {52, 54, 65},
+    FontColor = {242, 242, 248},
+    MainColor = {15, 16, 21},
+    BackgroundColor = {8, 9, 13},
+    AccentColor = {176, 92, 255},
+    OutlineColor = {60, 62, 74},
     ShadowColor = {0, 0, 0},
     SuccessColor = {75, 220, 145},
     WarningColor = {255, 188, 82},
     ErrorColor = {255, 94, 118},
-    DisabledColor = {92, 94, 105},
-    HoverColor = {35, 36, 45},
-    PanelColor = {24, 25, 32},
-    TextMutedColor = {145, 147, 160},
-    GlowColor = {145, 60, 255}
+    DisabledColor = {88, 91, 104},
+    HoverColor = {34, 36, 46},
+    PanelColor = {22, 23, 30},
+    TextMutedColor = {151, 154, 170},
+    GlowColor = {136, 70, 255}
 }
 
 --[[
@@ -500,33 +507,119 @@ function Render.text(pos, color, text)
 end
 
 function Render.panel(x, y, w, h, theme, accent)
-    Render.filled({x + 3, y + 4}, {x + w + 3, y + h + 4}, {0, 0, 0, 170})
+    Render.filled({x + 5, y + 7}, {x + w + 5, y + h + 7}, {0, 0, 0})
+    Render.filled({x - 1, y - 1}, {x + w + 1, y + h + 1}, {0, 0, 0})
     Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.MainColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {8, 9, 13})
     Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, theme.PanelColor)
+    Render.filled({x + 3, y + 3}, {x + w - 3, y + 22}, blend(theme.PanelColor, {36, 38, 48}, 0.42))
     if accent then
-        Render.filled({x + 2, y + 2}, {x + w - 2, y + 4}, theme.AccentColor)
+        Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.GlowColor)
+        Render.filled({x + 3, y + 4}, {x + w - 3, y + 5}, theme.AccentColor)
     end
 end
 
-function Render.image(source, x, y, w, h, color)
-    if not (dx9 and dx9.DrawImage) then return false end
-    if not DXForge.Logo.Asset and not DXForge.Logo.TriedLoad and dx9.Get then
-        DXForge.Logo.TriedLoad = true
-        local ok, asset = dxSafeCall(dx9.Get, source)
-        if ok and asset then
-            DXForge.Logo.Asset = asset
-        elseif DXForge.Logo.RemoteSource then
-            ok, asset = dxSafeCall(dx9.Get, DXForge.Logo.RemoteSource)
-            if ok and asset then DXForge.Logo.Asset = asset end
+function Render.surface(x, y, w, h, theme, active, hovered)
+    local fill = hovered and blend(theme.PanelColor, theme.HoverColor, 0.6) or theme.PanelColor
+    Render.filled({x, y}, {x + w, y + h}, active and theme.AccentColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {7, 8, 12})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, fill)
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, active and theme.GlowColor or {42, 44, 55})
+end
+
+function Render.drawImageCandidate(image, x, y, w, h, color)
+    if not (dx9 and dx9.DrawImage) or image == nil then return false end
+
+    local p1 = point(x, y)
+    local p2 = point(x + w, y + h)
+    local size = point(w, h)
+    local rgb = copyColor(color or {255, 255, 255})
+    local attempts = {
+        {image, p1, p2, rgb},
+        {p1, p2, image, rgb},
+        {image, p1, size, rgb},
+        {p1, size, image, rgb},
+        {p1, p2, rgb, image}
+    }
+
+    for _, args in ipairs(attempts) do
+        local ok = dxSafeCall(dx9.DrawImage, unpack(args))
+        if ok then return true end
+    end
+
+    return false
+end
+
+function Render.logo(x, y, w, h, color)
+    local logo = DXForge.Logo
+    if not (dx9 and dx9.DrawImage) then
+        logo.Status = "unsupported"
+        logo.Failed = true
+        logo.LastError = "dx9.DrawImage is not available in this DX9 runtime"
+        return false, logo.Status
+    end
+
+    if logo.Loaded and logo.Asset then
+        if Render.drawImageCandidate(logo.Asset, x, y, w, h, color) then
+            return true, "loaded"
+        end
+        logo.Loaded = false
+        logo.Asset = nil
+        logo.Status = "retry"
+    end
+
+    if not logo.LoadStartedAt then
+        logo.LoadStartedAt = os.clock()
+        logo.Status = "loading"
+    end
+
+    local sources = {
+        logo.Source,
+        "./" .. tostring(logo.Source),
+        "assets/DXForgeSingle.png",
+        logo.RemoteSource
+    }
+
+    for _, source in ipairs(sources) do
+        if source and not logo.Attempts[source] then
+            logo.Attempts[source] = true
+            local asset = source
+
+            if string.sub(tostring(source), 1, 4) == "http" then
+                if dx9.Get then
+                    local ok, body = dxSafeCall(dx9.Get, source)
+                    if ok and body and body ~= "" then
+                        asset = body
+                    else
+                        logo.LastError = "dx9.Get failed for " .. tostring(source)
+                        asset = nil
+                    end
+                else
+                    logo.LastError = "dx9.Get is not available for " .. tostring(source)
+                    asset = nil
+                end
+            end
+
+            if asset and Render.drawImageCandidate(asset, x, y, w, h, color) then
+                logo.Asset = asset
+                logo.ActiveSource = source
+                logo.Loaded = true
+                logo.Failed = false
+                logo.Status = "loaded"
+                return true, logo.Status
+            end
         end
     end
-    local image = DXForge.Logo.Asset or source
-    if image then
-        local ok = dxSafeCall(dx9.DrawImage, image, point(x, y), point(x + w, y + h), copyColor(color or {255, 255, 255}))
-        return ok
+
+    if os.clock() - logo.LoadStartedAt >= logo.LoadTimeout then
+        logo.Status = "failed"
+        logo.Failed = true
+        logo.LastError = logo.LastError or "No DXForge logo source could be rendered"
+        return false, logo.Status
     end
-    return false
+
+    logo.Status = "loading"
+    return false, logo.Status
 end
 
 --// Input System --------------------------------------------------------------
@@ -782,10 +875,11 @@ function Button:render(theme)
 
     local hover = DXForge:Animate(self.Id .. ":hover", self.Hovered and 1 or 0, 16)
     local fill = blend(theme.PanelColor, theme.HoverColor, hover)
-    if pressed then fill = blend(fill, theme.AccentColor, 0.22) end
-    Render.filled({b[1], b[2]}, {b[1] + b[3], b[2] + b[4]}, theme.OutlineColor)
-    Render.filled({b[1] + 1, b[2] + 1}, {b[1] + b[3] - 1, b[2] + b[4] - 1}, fill)
-    Render.text({b[1] + 8, b[2] + 6}, theme.FontColor, Render.trimText(self.Text, b[3] - 16))
+    if pressed then fill = blend(fill, theme.AccentColor, 0.28) end
+    Render.surface(b[1], b[2], b[3], b[4], theme, pressed, self.Hovered)
+    Render.filled({b[1] + 2, b[2] + 2}, {b[1] + b[3] - 2, b[2] + b[4] - 2}, fill)
+    Render.filled({b[1] + 2, b[2] + 2}, {b[1] + 4 + (b[3] - 6) * hover, b[2] + 3}, theme.AccentColor)
+    Render.text({b[1] + 10, b[2] + 7}, theme.FontColor, Render.trimText(self.Text, b[3] - 20))
 end
 
 local Toggle = setmetatable({}, Component)
@@ -835,14 +929,13 @@ function Toggle:render(theme)
 
     local t = DXForge:Animate(self.Id .. ":value", self.Value and 1 or 0, 18)
     local hover = DXForge:Animate(self.Id .. ":hover", self.Hovered and 1 or 0, 15)
-    Render.text({b[1], b[2] + 5}, self.Value and theme.FontColor or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 56))
+    Render.text({b[1], b[2] + 5}, self.Value and theme.FontColor or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 58))
 
-    local sx, sy, sw, sh = b[1] + b[3] - 42, b[2] + 6, 36, 15
-    Render.filled({sx, sy}, {sx + sw, sy + sh}, theme.OutlineColor)
-    Render.filled({sx + 1, sy + 1}, {sx + sw - 1, sy + sh - 1}, blend(theme.BackgroundColor, theme.HoverColor, hover))
-    Render.filled({sx + 2, sy + 2}, {sx + 2 + (sw - 4) * t, sy + sh - 2}, theme.AccentColor)
-    local knob = sx + 3 + (sw - 13) * t
-    Render.filled({knob, sy + 3}, {knob + 9, sy + sh - 3}, theme.FontColor)
+    local sx, sy, sw, sh = b[1] + b[3] - 44, b[2] + 5, 40, 17
+    Render.surface(sx, sy, sw, sh, theme, self.Value, self.Hovered)
+    Render.filled({sx + 2, sy + 2}, {sx + 2 + (sw - 4) * t, sy + sh - 2}, blend(theme.GlowColor, theme.AccentColor, 0.4))
+    local knob = sx + 3 + (sw - 15) * t
+    Render.filled({knob, sy + 3}, {knob + 11, sy + sh - 3}, self.Value and theme.FontColor or theme.TextMutedColor)
 end
 
 local Slider = setmetatable({}, Component)
@@ -899,11 +992,12 @@ function Slider:render(theme)
 
     self.DisplayValue = lerp(self.DisplayValue, self.Value, 1 - math.exp(-18 * DXForge.Runtime.Delta))
     local pct = (self.DisplayValue - self.Min) / (self.Max - self.Min)
-    Render.filled({bx, by}, {bx + bw, by + bh}, theme.OutlineColor)
-    Render.filled({bx + 1, by + 1}, {bx + bw - 1, by + bh - 1}, theme.BackgroundColor)
-    Render.filled({bx + 1, by + 1}, {bx + 1 + (bw - 2) * pct, by + bh - 1}, theme.AccentColor)
+    Render.filled({bx, by - 1}, {bx + bw, by + bh + 1}, theme.OutlineColor)
+    Render.filled({bx + 1, by}, {bx + bw - 1, by + bh}, theme.BackgroundColor)
+    Render.filled({bx + 1, by}, {bx + 1 + (bw - 2) * pct, by + bh}, blend(theme.GlowColor, theme.AccentColor, 0.45))
     local knob = bx + bw * pct
-    Render.filled({knob - 2, by - 3}, {knob + 2, by + bh + 3}, theme.FontColor)
+    Render.filled({knob - 3, by - 4}, {knob + 3, by + bh + 4}, theme.AccentColor)
+    Render.filled({knob - 1, by - 2}, {knob + 1, by + bh + 2}, theme.FontColor)
 end
 
 local Dropdown = setmetatable({}, Component)
@@ -962,17 +1056,17 @@ function Dropdown:render(theme)
     Input:release(headerId)
 
     local openAmount = DXForge:Animate(self.Id .. ":open", self.Open and 1 or 0, 18)
-    Render.filled({bx, by}, {bx + bw, by + bh}, theme.OutlineColor)
-    Render.filled({bx + 1, by + 1}, {bx + bw - 1, by + bh - 1}, theme.PanelColor)
-    Render.text({bx + 6, by + 3}, theme.TextMutedColor, Render.trimText(self:displayText(), bw - 23))
-    Render.text({bx + bw - 14, by + 2}, theme.AccentColor, self.Open and "^" or "v")
+    Render.surface(bx, by, bw, bh, theme, self.Open, self.Hovered)
+    Render.text({bx + 8, by + 4}, self.Open and theme.FontColor or theme.TextMutedColor, Render.trimText(self:displayText(), bw - 28))
+    Render.text({bx + bw - 15, by + 3}, theme.AccentColor, self.Open and "^" or "v")
 
     if openAmount > 0.02 then
         local itemHeight = 20
         local visibleCount = math.min(#self.Values, 8)
         local ph = visibleCount * itemHeight * openAmount
         Render.filled({bx, by + bh + 2}, {bx + bw, by + bh + 2 + ph}, theme.OutlineColor)
-        Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, theme.BackgroundColor)
+        Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, {7, 8, 12})
+        Render.filled({bx + 2, by + bh + 3}, {bx + bw - 2, by + bh + 4}, theme.AccentColor)
         if self.Open then
             Input:claim(self.Id)
             for index = 1, visibleCount do
@@ -1057,10 +1151,9 @@ function Textbox:render(theme)
     end
 
     local active = Input.FocusText == self
-    Render.filled({bx, by}, {bx + bw, by + bh}, active and theme.AccentColor or theme.OutlineColor)
-    Render.filled({bx + 1, by + 1}, {bx + bw - 1, by + bh - 1}, theme.PanelColor)
+    Render.surface(bx, by, bw, bh, theme, active, self.Hovered)
     local shown = self.Value ~= "" and self.Value or self.Placeholder
-    Render.text({bx + 6, by + 3}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 14))
+    Render.text({bx + 8, by + 4}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 16))
 end
 
 local Keybind = setmetatable({}, Component)
@@ -1119,9 +1212,8 @@ function Keybind:render(theme)
         safeCall("Keybind:" .. self.Text, self.Callback, self.Key, self.State)
     end
 
-    Render.filled({bx, by}, {bx + bw, by + bh}, self.Reading and theme.AccentColor or theme.OutlineColor)
-    Render.filled({bx + 1, by + 1}, {bx + bw - 1, by + bh - 1}, theme.PanelColor)
-    Render.text({bx + 5, by + 3}, self.State and theme.AccentColor or theme.TextMutedColor, Render.trimText(self.Reading and "Press key" or self.Key, bw - 10))
+    Render.surface(bx, by, bw, bh, theme, self.Reading or self.State, self.Hovered)
+    Render.text({bx + 6, by + 4}, self.State and theme.AccentColor or theme.TextMutedColor, Render.trimText(self.Reading and "Press key" or self.Key, bw - 12))
 end
 
 local ColorPicker = setmetatable({}, Component)
@@ -1160,6 +1252,7 @@ function ColorPicker:render(theme)
 
     local sx, sy, sw, sh = b[1] + b[3] - 65, b[2] + 4, 26, 16
     Render.filled({sx - 1, sy - 1}, {sx + sw + 1, sy + sh + 1}, self.Open and theme.AccentColor or theme.OutlineColor)
+    Render.filled({sx, sy}, {sx + sw, sy + sh}, {0, 0, 0})
     Render.filled({sx, sy}, {sx + sw, sy + sh}, self.Value)
     Render.text({sx + sw + 7, sy - 1}, theme.TextMutedColor, "...")
 
@@ -1173,8 +1266,10 @@ function ColorPicker:render(theme)
     if open > 0.02 then
         local px, py = b[1], b[2] + 28
         local pw, ph = b[3], (self.WithAlpha and 124 or 106) * open
+        Render.filled({px + 2, py + 3}, {px + pw + 2, py + ph + 3}, {0, 0, 0})
         Render.filled({px, py}, {px + pw, py + ph}, theme.OutlineColor)
-        Render.filled({px + 1, py + 1}, {px + pw - 1, py + ph - 1}, theme.BackgroundColor)
+        Render.filled({px + 1, py + 1}, {px + pw - 1, py + ph - 1}, {7, 8, 12})
+        Render.filled({px + 2, py + 2}, {px + pw - 2, py + 3}, theme.AccentColor)
 
         if self.Open then
             Input:claim(self.Id)
@@ -1216,7 +1311,7 @@ function ColorPicker:render(theme)
             Render.box({markerX - 2, markerY - 2}, {markerX + 2, markerY + 2}, theme.FontColor)
             Render.line({hueX - 3, hueY + self.Hue * hueH}, {hueX + hueW + 3, hueY + self.Hue * hueH}, theme.FontColor)
 
-            Render.filled({px + 8, py + 88}, {px + pw - 8, py + 105}, theme.PanelColor)
+            Render.surface(px + 8, py + 88, pw - 16, 17, theme, false, false)
             Render.text({px + 13, py + 90}, currentHue, rgbToHex(self.Value) .. "  RGB(" .. math.floor(self.Value[1]) .. ", " .. math.floor(self.Value[2]) .. ", " .. math.floor(self.Value[3]) .. ")")
         end
     end
@@ -1412,12 +1507,15 @@ function Groupbox:render(theme, x, y, w)
     if not self.Visible then return 0 end
     local h = self:measure(w)
     self.Bounds = {x, y, w, h}
+    Render.filled({x + 2, y + 3}, {x + w + 2, y + h + 3}, {0, 0, 0})
     Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + 3}, theme.AccentColor)
-    Render.filled({x + 1, y + 4}, {x + w - 1, y + h - 1}, theme.BackgroundColor)
-    Render.text({x + 10, y + 7}, theme.FontColor, Render.trimText(self.Title, w - 20))
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {7, 8, 12})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 24}, blend(theme.PanelColor, {32, 34, 43}, 0.42))
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
+    Render.filled({x + 2, y + 25}, {x + w - 2, y + h - 2}, theme.BackgroundColor)
+    Render.text({x + 11, y + 7}, theme.FontColor, Render.trimText(self.Title, w - 22))
 
-    local cursor = y + 28
+    local cursor = y + 31
     for _, component in ipairs(self.Components) do
         if component.Visible then
             local rowHeight = component:layout(x + 9, cursor, w - 18)
@@ -1747,12 +1845,12 @@ function Window:handleInput(theme)
 end
 
 function Window:renderTabs(theme)
-    local x, y = self.Position[1] + 10, self.Position[2] + 31
+    local x, y = self.Position[1] + 12, self.Position[2] + 34
     local cursor = x
     local maxX = self.Position[1] + self.Size[1] - 10
 
     for index, tab in ipairs(self.Tabs) do
-        local tw = math.min(Render.textWidth(tab.Name) + 22, 120)
+        local tw = math.min(Render.textWidth(tab.Name) + 26, 128)
         if cursor + tw > maxX then break end
         local active = self.ActiveTab == tab
         local id = self.Id .. ":tab:" .. tostring(index)
@@ -1762,13 +1860,14 @@ function Window:renderTabs(theme)
         Input:release(id)
 
         local t = DXForge:Animate(id .. ":active", active and 1 or 0, 15)
-        Render.filled({cursor, y}, {cursor + tw, y + DXForge.Config.TabHeight}, theme.OutlineColor)
-        Render.filled({cursor + 1, y + 1}, {cursor + tw - 1, y + DXForge.Config.TabHeight - 1}, blend(theme.PanelColor, theme.BackgroundColor, t))
+        local hovered = Input:hover(cursor, y, tw, DXForge.Config.TabHeight)
+        Render.surface(cursor, y, tw, DXForge.Config.TabHeight, theme, active, hovered)
+        Render.filled({cursor + 2, y + 2}, {cursor + tw - 2, y + DXForge.Config.TabHeight - 2}, blend(theme.BackgroundColor, theme.PanelColor, t))
         if active then
-            Render.filled({cursor + 1, y + 1}, {cursor + tw - 1, y + 3}, theme.AccentColor)
+            Render.filled({cursor + 2, y + 2}, {cursor + tw - 2, y + 4}, theme.AccentColor)
         end
-        Render.text({cursor + 10, y + 6}, active and theme.FontColor or theme.TextMutedColor, Render.trimText(tab.Name, tw - 18))
-        cursor = cursor + tw + 5
+        Render.text({cursor + 11, y + 7}, active and theme.FontColor or theme.TextMutedColor, Render.trimText(tab.Name, tw - 20))
+        cursor = cursor + tw + 6
     end
 end
 
@@ -1777,10 +1876,11 @@ function Window:renderFooter(theme)
     local x, y = self.Position[1], self.Position[2]
     local w, h = self.Size[1], self.Size[2]
     local footerY = y + h - 25
-    Render.filled({x + 5, footerY - 1}, {x + w - 5, footerY}, theme.OutlineColor)
-    Render.text({x + 10, footerY + 5}, theme.TextMutedColor, "DXForge " .. DXForge.__DXFORGE_VERSION)
+    Render.filled({x + 8, footerY - 3}, {x + w - 8, footerY - 2}, theme.OutlineColor)
+    Render.filled({x + 8, footerY - 2}, {x + 80, footerY - 1}, theme.AccentColor)
+    Render.text({x + 12, footerY + 5}, theme.TextMutedColor, "DXForge " .. DXForge.__DXFORGE_VERSION)
     local keyText = self.ToggleKey and ("Toggle: " .. self.ToggleKey) or "Ready"
-    Render.text({x + w - Render.textWidth(keyText) - 10, footerY + 5}, theme.TextMutedColor, keyText)
+    Render.text({x + w - Render.textWidth(keyText) - 12, footerY + 5}, theme.TextMutedColor, keyText)
 end
 
 function Window:render()
@@ -1793,21 +1893,25 @@ function Window:render()
     local x, y = self.Position[1], self.Position[2]
     local w, h = self.Size[1], self.Size[2]
     Render.panel(x, y, w, h, theme, true)
-    Render.filled({x + 1, y + 1}, {x + w - 1, y + DXForge.Config.HeaderHeight}, theme.MainColor)
-    Render.text({x + 11, y + 7}, theme.FontColor, Render.trimText(self.Title, w - 26))
+    Render.filled({x + 2, y + 6}, {x + w - 2, y + DXForge.Config.HeaderHeight + 3}, blend(theme.MainColor, theme.PanelColor, 0.35))
+    Render.filled({x + 12, y + 8}, {x + 16, y + 22}, theme.AccentColor)
+    Render.text({x + 22, y + 8}, theme.FontColor, Render.trimText(self.Title, w - 46))
 
     self:renderTabs(theme)
 
     local cx, cy, cw, ch = self:contentRect()
     Render.filled({cx - 1, cy - 1}, {cx + cw + 1, cy + ch + 1}, theme.OutlineColor)
-    Render.filled({cx, cy}, {cx + cw, cy + ch}, theme.MainColor)
+    Render.filled({cx, cy}, {cx + cw, cy + ch}, {6, 7, 11})
+    Render.filled({cx + 1, cy + 1}, {cx + cw - 1, cy + 2}, {38, 40, 50})
 
     if self.ActiveTab then
         self.ActiveTab:render(theme, cx + 10, cy + 10, cw - 20, ch - 20)
     end
 
     if self.Resizable then
-        Render.filled({x + w - 10, y + h - 10}, {x + w - 4, y + h - 4}, theme.AccentColor)
+        Render.line({x + w - 15, y + h - 6}, {x + w - 6, y + h - 15}, theme.OutlineColor)
+        Render.line({x + w - 12, y + h - 6}, {x + w - 6, y + h - 12}, theme.AccentColor)
+        Render.line({x + w - 8, y + h - 6}, {x + w - 6, y + h - 8}, theme.GlowColor)
     end
 
     self:renderFooter(theme)
@@ -1900,8 +2004,10 @@ function DXForge:renderNotifications(theme)
             elseif notification.Type == "Warning" then color = theme.WarningColor
             elseif notification.Type == "Error" then color = theme.ErrorColor end
 
+            Render.filled({x + 3, y + 4}, {x + width + 3, y + height + 4}, {0, 0, 0})
             Render.filled({x, y}, {x + width, y + height}, theme.OutlineColor)
-            Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.PanelColor)
+            Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, {7, 8, 12})
+            Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, color)
             Render.filled({x + 1, y + 1}, {x + 4, y + height - 1}, color)
             local progress = clamp(age / notification.Duration, 0, 1)
             Render.filled({x + 4, y + height - 3}, {x + 4 + (width - 5) * (1 - progress), y + height - 1}, color)
@@ -1934,8 +2040,10 @@ function DXForge:renderTooltip(theme)
     local x = clamp(Input.Mouse.x + 14, 4, sw - width - 4)
     local y = clamp(Input.Mouse.y + 16, 4, sh - height - 4)
 
+    Render.filled({x + 2, y + 3}, {x + width + 2, y + height + 3}, {0, 0, 0})
     Render.filled({x, y}, {x + width, y + height}, theme.AccentColor)
     Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.BackgroundColor)
+    Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, theme.GlowColor)
     for index, line in ipairs(lines) do
         Render.text({x + 7, y + 5 + (index - 1) * 16}, theme.FontColor, line)
     end
@@ -1972,6 +2080,7 @@ function DXForge:renderWatermark(theme)
     local text = self.Watermark.Text
     local x, y = self.Watermark.Position[1], self.Watermark.Position[2]
     local w = Render.textWidth(text) + 22
+    Render.filled({x + 2, y + 3}, {x + w + 2, y + 27}, {0, 0, 0})
     Render.filled({x, y}, {x + w, y + 24}, theme.OutlineColor)
     Render.filled({x + 1, y + 1}, {x + w - 1, y + 23}, theme.PanelColor)
     Render.filled({x + 1, y + 1}, {x + 4, y + 23}, theme.AccentColor)
@@ -1993,29 +2102,32 @@ function DXForge:renderStartup(theme)
     local alpha = math.min(intro, outro)
     local scale = 0.92 + 0.08 * intro - 0.04 * (1 - outro)
 
-    if age >= duration then
-        startup.Done = true
-        self.Runtime.StartupCompleted = true
-        if startup.Window then startup.Window.Visible = true end
-        return false
-    end
-
     local bw, bh = 390 * scale, 174 * scale
     local x, y = (sw - bw) / 2, (sh - bh) / 2
     local pulse = self:Pulse(4)
     local sweep = ((age * 115) % (bw + 80)) - 40
 
-    Render.filled({x - 8, y - 8}, {x + bw + 8, y + bh + 8}, {0, 0, 0, math.floor(125 * alpha)})
+    Render.filled({x + 6, y + 8}, {x + bw + 6, y + bh + 8}, {0, 0, 0})
     Render.panel(x, y, bw, bh, theme, true)
     Render.box({x - 1, y - 1}, {x + bw + 1, y + bh + 1}, blend(theme.OutlineColor, theme.GlowColor, pulse))
 
     Render.line({x + sweep, y + 3}, {x + sweep + 46, y + 3}, theme.GlowColor)
     Render.line({x + bw - sweep, y + bh - 4}, {x + bw - sweep - 46, y + bh - 4}, theme.AccentColor)
 
-    local logoDrawn = Render.image(self.Logo.Source, x + 62 * scale, y + 34 * scale, 266 * scale, 58 * scale, {255, 255, 255, math.floor(255 * alpha)})
+    local logoX = x + 62 * scale
+    local logoY = y + 34 * scale
+    local logoW = 266 * scale
+    local logoH = 58 * scale
+    local logoDrawn, logoStatus = Render.logo(logoX, logoY, logoW, logoH, {255, 255, 255})
     if not logoDrawn then
-        Render.text({x + (bw / 2) - 48, y + 46 * scale}, theme.FontColor, "DXForge")
-        Render.text({x + (bw / 2) - 49, y + 46 * scale}, theme.AccentColor, "DX")
+        local fallbackText = logoStatus == "loading" and "Loading Logo..." or "DXForge"
+        local fallbackWidth = Render.textWidth(fallbackText)
+        Render.filled({logoX, logoY}, {logoX + logoW, logoY + logoH}, {7, 8, 12})
+        Render.box({logoX, logoY}, {logoX + logoW, logoY + logoH}, logoStatus == "loading" and theme.OutlineColor or theme.AccentColor)
+        Render.text({x + (bw / 2) - (fallbackWidth / 2), y + 48 * scale}, logoStatus == "loading" and theme.TextMutedColor or theme.FontColor, fallbackText)
+        if logoStatus ~= "loading" then
+            Render.text({x + (bw / 2) - (fallbackWidth / 2) - 1, y + 48 * scale}, theme.AccentColor, "DX")
+        end
     end
 
     local messages = {"Initializing DXForge...", "Loading Interface...", "Preparing UI Components..."}
@@ -2024,7 +2136,16 @@ function DXForge:renderStartup(theme)
     Render.text({x + bw - Render.textWidth("PixelGG") - 24, y + bh - 50}, theme.AccentColor, "PixelGG")
     Render.filled({x + 24, y + bh - 24}, {x + bw - 24, y + bh - 17}, theme.OutlineColor)
     Render.filled({x + 25, y + bh - 23}, {x + bw - 25, y + bh - 18}, theme.BackgroundColor)
-    Render.filled({x + 25, y + bh - 23}, {x + 25 + (bw - 50) * clamp(age / duration, 0, 1), y + bh - 18}, theme.AccentColor)
+    local progress = logoStatus == "loading" and math.min(0.18, clamp(age / duration, 0, 1)) or clamp(age / duration, 0, 1)
+    Render.filled({x + 25, y + bh - 23}, {x + 25 + (bw - 50) * progress, y + bh - 18}, blend(theme.GlowColor, theme.AccentColor, 0.45))
+
+    if age >= duration and logoStatus ~= "loading" then
+        startup.Done = true
+        self.Runtime.StartupCompleted = true
+        if startup.Window then startup.Window.Visible = true end
+        return false
+    end
+
     return true
 end
 
