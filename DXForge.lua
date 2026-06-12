@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.4" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.5" then
     return DXForge
 end
 
@@ -133,7 +133,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.4",
+    __DXFORGE_VERSION = "1.0.5",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -159,9 +159,10 @@ DXForge = {
     },
     Logo = {
         Source = "DXForge.png",
-        LocalSources = {"DXForge.png", "./DXForge.png", "assets/DXForgeSingle.png"},
+        LocalSources = {"DXForgeLogoCache.png", "DXForge.png", "./DXForge.png", "assets/DXForgeSingle.png", "assets/DXForgeBanner.png"},
         RemoteSource = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
         CachePath = "DXForgeLogoCache.png",
+        Ratio = 1,
         Asset = nil,
         Loaded = false,
         Failed = false,
@@ -170,6 +171,8 @@ DXForge = {
         Attempts = {},
         LoadStartedAt = nil,
         LoadTimeout = 1.25,
+        Downloaded = false,
+        Prepared = false,
         LastError = nil
     },
     Config = {
@@ -186,7 +189,7 @@ DXForge = {
 }
 
 DXForge.AssetLoader = {
-    LogoRatio = 266 / 58
+    LogoRatio = 1
 }
 
 --// Helpers / Utilities -------------------------------------------------------
@@ -595,27 +598,93 @@ function DXForge.AssetLoader:writeCache(path, data)
     return true
 end
 
+function DXForge.AssetLoader:fileExists(path)
+    if type(path) ~= "string" or path == "" or not (io and io.open) then
+        return false
+    end
+
+    local ok, file = pcall(io.open, path, "rb")
+    if ok and file then
+        file:close()
+        return true
+    end
+    return false
+end
+
+function DXForge.AssetLoader:isPng(data)
+    return type(data) == "string" and string.sub(data, 1, 8) == "\137PNG\r\n\26\n"
+end
+
 function DXForge.AssetLoader:getLogoSources()
     local logo = DXForge.Logo
     local sources = {}
+    local seen = {}
 
-    if type(logo.LocalSources) == "table" then
-        for _, source in ipairs(logo.LocalSources) do
-            table.insert(sources, {Kind = "path", Value = source})
-        end
-    elseif logo.Source then
-        table.insert(sources, {Kind = "path", Value = logo.Source})
+    local function add(kind, value, ratio)
+        if type(value) ~= "string" or value == "" then return end
+        local key = kind .. ":" .. value
+        if seen[key] then return end
+        seen[key] = true
+        table.insert(sources, {Kind = kind, Value = value, Ratio = ratio or logo.Ratio or self.LogoRatio})
     end
 
     if logo.CachePath then
-        table.insert(sources, {Kind = "path", Value = logo.CachePath})
+        add("path", logo.CachePath, logo.Ratio)
+    end
+
+    if type(logo.LocalSources) == "table" then
+        for _, source in ipairs(logo.LocalSources) do
+            local ratio = logo.Ratio
+            if source == "assets/DXForgeSingle.png" then ratio = 1.5 end
+            if source == "assets/DXForgeBanner.png" then ratio = 3 end
+            add("path", source, ratio)
+        end
+    elseif logo.Source then
+        add("path", logo.Source, logo.Ratio)
     end
 
     if logo.RemoteSource then
-        table.insert(sources, {Kind = "remote", Value = logo.RemoteSource})
+        add("remote", logo.RemoteSource, logo.Ratio)
     end
 
     return sources
+end
+
+function DXForge.AssetLoader:prepareLogo()
+    local logo = DXForge.Logo
+    if logo.Prepared then return end
+    logo.Prepared = true
+    logo.LoadStartedAt = logo.LoadStartedAt or os.clock()
+    logo.Status = "loading"
+
+    if logo.RemoteSource and dx9 and dx9.Get and logo.CachePath then
+        local ok, body = dxSafeCall(dx9.Get, logo.RemoteSource)
+        if ok and type(body) == "string" and body ~= "" then
+            logo.Downloaded = true
+            if self:isPng(body) then
+                if self:writeCache(logo.CachePath, body) then
+                    logo.Status = "cached"
+                    self:warn("Downloaded and cached startup logo at " .. tostring(logo.CachePath))
+                else
+                    logo.LastError = "Downloaded logo but could not write cache: " .. tostring(logo.CachePath)
+                    self:warn(logo.LastError)
+                end
+            else
+                logo.LastError = "Downloaded startup logo is not a PNG payload"
+                self:warn(logo.LastError)
+            end
+        else
+            logo.LastError = "dx9.Get failed for " .. tostring(logo.RemoteSource)
+            self:warn(logo.LastError)
+        end
+    elseif logo.RemoteSource and not (dx9 and dx9.Get) then
+        logo.LastError = "dx9.Get is not available; using local startup logo paths"
+        self:warn(logo.LastError)
+    end
+end
+
+function DXForge.AssetLoader:getLogoRatio()
+    return DXForge.Logo.ActiveRatio or DXForge.Logo.Ratio or self.LogoRatio or 1
 end
 
 function Render.drawImageCandidate(image, x, y, w, h, color)
@@ -630,12 +699,16 @@ function Render.drawImageCandidate(image, x, y, w, h, color)
         {p1, p2, image, rgb},
         {image, p1, size, rgb},
         {p1, size, image, rgb},
-        {p1, p2, rgb, image}
+        {p1, p2, rgb, image},
+        {image, x, y, w, h},
+        {x, y, w, h, image},
+        {image, x, y, w, h, rgb},
+        {x, y, w, h, image, rgb}
     }
 
     for _, args in ipairs(attempts) do
-        local ok = dxSafeCall(dx9.DrawImage, unpack(args))
-        if ok then return true end
+        local ok, result = dxSafeCall(dx9.DrawImage, unpack(args))
+        if ok and result ~= false then return true end
     end
 
     return false
@@ -643,6 +716,8 @@ end
 
 function DXForge.AssetLoader:drawLogo(x, y, w, h, color)
     local logo = DXForge.Logo
+    self:prepareLogo()
+
     if not (dx9 and dx9.DrawImage) then
         logo.Status = "unsupported"
         logo.Failed = true
@@ -659,51 +734,29 @@ function DXForge.AssetLoader:drawLogo(x, y, w, h, color)
         logo.Status = "retry"
     end
 
-    if not logo.LoadStartedAt then
-        logo.LoadStartedAt = os.clock()
-        logo.Status = "loading"
-    end
-
     for _, source in ipairs(self:getLogoSources()) do
         local key = tostring(source.Kind) .. ":" .. tostring(source.Value)
-        if source.Value and not logo.Attempts[key] then
-            logo.Attempts[key] = true
+        if source.Value then
+            logo.Attempts[key] = (logo.Attempts[key] or 0) + 1
             local asset = source.Value
 
             if source.Kind == "remote" then
-                if dx9.Get then
-                    local ok, body = dxSafeCall(dx9.Get, source.Value)
-                    if ok and body and body ~= "" then
-                        asset = body
-                        if logo.CachePath and self:writeCache(logo.CachePath, body) then
-                            if Render.drawImageCandidate(logo.CachePath, x, y, w, h, color) then
-                                logo.Asset = logo.CachePath
-                                logo.ActiveSource = logo.CachePath
-                                logo.Loaded = true
-                                logo.Failed = false
-                                logo.Status = "loaded"
-                                return true, logo.Status
-                            end
-                        end
-                    else
-                        logo.LastError = "dx9.Get failed for " .. tostring(source.Value)
-                        self:warn(logo.LastError)
-                        asset = nil
-                    end
-                else
-                    logo.LastError = "dx9.Get is not available for " .. tostring(source.Value)
-                    self:warn(logo.LastError)
-                    asset = nil
-                end
+                asset = source.Value
+            elseif source.Kind == "path" and not self:fileExists(source.Value) then
+                asset = nil
             end
 
             if asset and Render.drawImageCandidate(asset, x, y, w, h, color) then
                 logo.Asset = asset
                 logo.ActiveSource = source.Value
+                logo.ActiveRatio = source.Ratio or logo.Ratio
                 logo.Loaded = true
                 logo.Failed = false
                 logo.Status = "loaded"
                 return true, logo.Status
+            elseif logo.Attempts[key] == 1 then
+                logo.LastError = "Could not render startup logo source: " .. tostring(source.Value)
+                self:warn(logo.LastError)
             end
         end
     end
@@ -2279,7 +2332,8 @@ function DXForge:renderStartup(theme)
     local logoBoxY = y + 30 * scale
     local logoBoxW = 286 * scale
     local logoBoxH = 66 * scale
-    local logoX, logoY, logoW, logoH = Render.fitRect(logoBoxX, logoBoxY, logoBoxW, logoBoxH, self.AssetLoader.LogoRatio)
+    self.AssetLoader:prepareLogo()
+    local logoX, logoY, logoW, logoH = Render.fitRect(logoBoxX, logoBoxY, logoBoxW, logoBoxH, self.AssetLoader:getLogoRatio())
     local logoDrawn, logoStatus = self.AssetLoader:drawLogo(logoX, logoY, logoW, logoH, {255, 255, 255})
     if not logoDrawn then
         self:renderLogoFallback(logoX, logoY, logoW, logoH, theme, logoStatus)
