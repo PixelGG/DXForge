@@ -22,9 +22,8 @@ DXForge always runs its branded startup screen once when the first window is cre
 
 ## What It Renders
 
-- Dark full-screen intro backdrop
-- Centered premium panel
-- DXForge logo image when supported by the DX9 environment
+- Centered premium panel only, without a fullscreen black backdrop
+- Local `DXForge.png` logo image inside the loading panel when supported by the DX9 environment
 - Text fallback when image rendering is unavailable
 - Animated sweep lines
 - Progress indicator
@@ -36,10 +35,10 @@ DXForge always runs its branded startup screen once when the first window is cre
 The library references:
 
 ```text
-https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png
+DXForge.png
 ```
 
-If `dx9.DrawImage` or remote asset loading is not available, DXForge gracefully falls back to text branding.
+Keep `DXForge.png` next to `DXForge.lua`. If `dx9.DrawImage` or image loading is not available, DXForge gracefully falls back to text branding.
 
 ## Duration
 

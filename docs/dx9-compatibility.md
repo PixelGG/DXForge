@@ -27,22 +27,16 @@ DXForge uses this Cult-of-Intellect-style DX9 Lua API surface:
 | Function | Fallback |
 | --- | --- |
 | `dx9.DrawImage(...)` | Startup logo falls back to text branding. |
-| `dx9.Get(url)` | Used for remote script/logo loading; logo loading is skipped if unavailable or incompatible. |
 
 ## Correct Loading Pattern
 
 DX9WARE:
 
 ```lua
-local DXForge = _G.DXForge or loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
+local DXForge = _G.DXForge or dofile("DXForge.lua")
 ```
 
-Roblox executor style is not compatible with DX9WARE:
-
-```lua
--- Do not use this in DX9WARE.
-local DXForge = loadstring(game:HttpGet("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua"))()
-```
+Keep `DXForge.lua` local. DX9WARE does not provide Roblox's `game` object or `game:HttpGet`.
 
 ## Compatibility Notes
 

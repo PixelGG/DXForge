@@ -158,7 +158,8 @@ DXForge = {
         StartupCompleted = false
     },
     Logo = {
-        Source = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
+        Source = "DXForge.png",
+        RemoteSource = "https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.png",
         Asset = nil,
         TriedLoad = false
     },
@@ -513,10 +514,16 @@ function Render.image(source, x, y, w, h, color)
     if not DXForge.Logo.Asset and not DXForge.Logo.TriedLoad and dx9.Get then
         DXForge.Logo.TriedLoad = true
         local ok, asset = dxSafeCall(dx9.Get, source)
-        if ok then DXForge.Logo.Asset = asset end
+        if ok and asset then
+            DXForge.Logo.Asset = asset
+        elseif DXForge.Logo.RemoteSource then
+            ok, asset = dxSafeCall(dx9.Get, DXForge.Logo.RemoteSource)
+            if ok and asset then DXForge.Logo.Asset = asset end
+        end
     end
-    if DXForge.Logo.Asset then
-        local ok = dxSafeCall(dx9.DrawImage, DXForge.Logo.Asset, point(x, y), point(x + w, y + h), copyColor(color or {255, 255, 255}))
+    local image = DXForge.Logo.Asset or source
+    if image then
+        local ok = dxSafeCall(dx9.DrawImage, image, point(x, y), point(x + w, y + h), copyColor(color or {255, 255, 255}))
         return ok
     end
     return false
@@ -1948,7 +1955,6 @@ function DXForge:renderStartup(theme)
     local pulse = self:Pulse(4)
     local sweep = ((age * 115) % (bw + 80)) - 40
 
-    Render.filled({0, 0}, {sw, sh}, {3, 4, 8, math.floor(220 * alpha)})
     Render.filled({x - 8, y - 8}, {x + bw + 8, y + bh + 8}, {0, 0, 0, math.floor(125 * alpha)})
     Render.panel(x, y, bw, bh, theme, true)
     Render.box({x - 1, y - 1}, {x + bw + 1, y + bh + 1}, blend(theme.OutlineColor, theme.GlowColor, pulse))
