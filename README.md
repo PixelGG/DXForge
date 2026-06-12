@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=B254FF" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-1.0.0-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.0.1-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="License" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Author" />
 </p>
@@ -162,6 +162,7 @@ DXForge:Render()
 | [Startup Screen](docs/startup-screen.md) | Loading screen behavior, branding, and configuration. |
 | [Notifications & Tooltips](docs/notifications-tooltips.md) | Feedback patterns and hover help. |
 | [Input & Windowing](docs/input-windowing.md) | Click handling, focus, z-index, dragging, and resizing. |
+| [DX9 Compatibility](docs/dx9-compatibility.md) | Cult-of-Intellect/DX9 API expectations and fallbacks. |
 | [Examples](docs/examples.md) | Copy-ready snippets for common menu layouts. |
 | [Troubleshooting](docs/troubleshooting.md) | Common mistakes and fixes. |
 

@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.0.0" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.1" then
     return DXForge
 end
 
@@ -133,7 +133,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.0.0",
+    __DXFORGE_VERSION = "1.0.1",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -410,10 +410,32 @@ end
 
 local Render = {}
 
+local function dxSafeCall(fn, ...)
+    if type(fn) ~= "function" then return false, nil end
+    local ok, result = pcall(fn, ...)
+    return ok, result
+end
+
+local function point(x, y)
+    return {math.floor(tonumber(x) or 0), math.floor(tonumber(y) or 0)}
+end
+
+local function rectPoints(a, b)
+    local x1 = math.floor(tonumber(a[1]) or 0)
+    local y1 = math.floor(tonumber(a[2]) or 0)
+    local x2 = math.floor(tonumber(b[1]) or 0)
+    local y2 = math.floor(tonumber(b[2]) or 0)
+    if x2 < x1 then x1, x2 = x2, x1 end
+    if y2 < y1 then y1, y2 = y2, y1 end
+    return {x1, y1}, {x2, y2}
+end
+
 function Render.screen()
     if dx9 and dx9.size then
-        local size = dx9.size()
-        return size.width or 1920, size.height or 1080
+        local ok, size = dxSafeCall(dx9.size)
+        if ok and type(size) == "table" then
+            return tonumber(size.width) or 1920, tonumber(size.height) or 1080
+        end
     end
     return 1920, 1080
 end
@@ -424,10 +446,12 @@ function Render.textWidth(text)
     if cached then return cached end
     local width = 0
     if dx9 and dx9.CalcTextWidth then
-        width = dx9.CalcTextWidth(text)
+        local ok, result = dxSafeCall(dx9.CalcTextWidth, text)
+        width = ok and tonumber(result) or 0
     else
         width = #text * 7
     end
+    if width <= 0 then width = #text * 7 end
     DXForge.TextCache[text] = width
     return width
 end
@@ -445,13 +469,15 @@ end
 
 function Render.filled(a, b, color)
     if dx9 and dx9.DrawFilledBox then
-        dx9.DrawFilledBox({math.floor(a[1]), math.floor(a[2])}, {math.floor(b[1]), math.floor(b[2])}, copyColor(color))
+        local p1, p2 = rectPoints(a, b)
+        dxSafeCall(dx9.DrawFilledBox, p1, p2, copyColor(color))
     end
 end
 
 function Render.box(a, b, color)
     if dx9 and dx9.DrawBox then
-        dx9.DrawBox({math.floor(a[1]), math.floor(a[2])}, {math.floor(b[1]), math.floor(b[2])}, copyColor(color))
+        local p1, p2 = rectPoints(a, b)
+        dxSafeCall(dx9.DrawBox, p1, p2, copyColor(color))
     else
         Render.filled(a, {b[1], a[2] + 1}, color)
         Render.filled({a[1], b[2] - 1}, b, color)
@@ -462,13 +488,13 @@ end
 
 function Render.line(a, b, color)
     if dx9 and dx9.DrawLine then
-        dx9.DrawLine({math.floor(a[1]), math.floor(a[2])}, {math.floor(b[1]), math.floor(b[2])}, copyColor(color))
+        dxSafeCall(dx9.DrawLine, point(a[1], a[2]), point(b[1], b[2]), copyColor(color))
     end
 end
 
 function Render.text(pos, color, text)
     if dx9 and dx9.DrawString then
-        dx9.DrawString({math.floor(pos[1]), math.floor(pos[2])}, copyColor(color), tostring(text or ""))
+        dxSafeCall(dx9.DrawString, point(pos[1], pos[2]), copyColor(color), tostring(text or ""))
     end
 end
 
@@ -486,11 +512,11 @@ function Render.image(source, x, y, w, h, color)
     if not (dx9 and dx9.DrawImage) then return false end
     if not DXForge.Logo.Asset and not DXForge.Logo.TriedLoad and dx9.Get then
         DXForge.Logo.TriedLoad = true
-        local ok, asset = pcall(dx9.Get, source)
+        local ok, asset = dxSafeCall(dx9.Get, source)
         if ok then DXForge.Logo.Asset = asset end
     end
     if DXForge.Logo.Asset then
-        local ok = pcall(dx9.DrawImage, DXForge.Logo.Asset, {x, y}, {x + w, y + h}, color or {255, 255, 255})
+        local ok = dxSafeCall(dx9.DrawImage, DXForge.Logo.Asset, point(x, y), point(x + w, y + h), copyColor(color or {255, 255, 255}))
         return ok
     end
     return false
@@ -516,15 +542,31 @@ local Input = {
 }
 
 function Input:update()
-    local mouse = dx9 and dx9.GetMouse and dx9.GetMouse() or {x = 0, y = 0}
+    local mouse = {x = 0, y = 0}
+    if dx9 and dx9.GetMouse then
+        local ok, result = dxSafeCall(dx9.GetMouse)
+        if ok and type(result) == "table" then
+            mouse = result
+        end
+    end
     self.LastMouse.x, self.LastMouse.y = self.Mouse.x, self.Mouse.y
     self.Mouse.x, self.Mouse.y = mouse.x or 0, mouse.y or 0
     self.LastMouseDown = self.MouseDown
-    self.MouseDown = dx9 and dx9.isLeftClickHeld and dx9.isLeftClickHeld() or false
+    if dx9 and dx9.isLeftClickHeld then
+        local ok, result = dxSafeCall(dx9.isLeftClickHeld)
+        self.MouseDown = ok and result == true
+    else
+        self.MouseDown = false
+    end
     self.ClickStarted = self.MouseDown and not self.LastMouseDown
     self.ClickReleased = (not self.MouseDown) and self.LastMouseDown
     self.LastKey = self.Key
-    self.Key = dx9 and dx9.GetKey and dx9.GetKey() or "[None]"
+    if dx9 and dx9.GetKey then
+        local ok, result = dxSafeCall(dx9.GetKey)
+        self.Key = ok and tostring(result or "[None]") or "[None]"
+    else
+        self.Key = "[None]"
+    end
     self.KeyPressed = self.Key ~= "[None]" and self.Key ~= "[Unknown]" and self.Key ~= self.LastKey
     self.Claimed = false
     self.ClaimId = nil

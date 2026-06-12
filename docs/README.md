@@ -24,6 +24,7 @@
 | [Startup Screen](startup-screen.md) | Loading screen, logo behavior, and PixelGG signature. |
 | [Notifications & Tooltips](notifications-tooltips.md) | Feedback messages and hover descriptions. |
 | [Input & Windowing](input-windowing.md) | Focus, z-index, dragging, resizing, and click-blocking. |
+| [DX9 Compatibility](dx9-compatibility.md) | Cult-of-Intellect/DX9 API expectations and fallbacks. |
 | [Examples](examples.md) | Copy-ready complete snippets. |
 | [Troubleshooting](troubleshooting.md) | Common setup, DX9, render-loop, and input issues. |
 
