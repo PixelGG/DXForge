@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:FF4444,100:14151C&text=AR2+DOMINION&fontColor=F2EEFF&fontSize=36&fontAlignY=38&animation=fadeIn&desc=Apocalypse+Rising+2+%E2%80%94+DX9WARE+Script&descAlignY=64&descSize=14" alt="AR2 DOMINION animated header" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:FF4444,100:14151C&text=AR2+DOMINION&fontColor=F2EEFF&fontSize=38&fontAlignY=38&animation=fadeIn&desc=Apocalypse+Rising+2+%E2%80%94+DX9WARE+Script&descAlignY=64&descSize=14" alt="AR2 DOMINION animated header" width="100%" />
 </p>
 
 <p align="center">
@@ -13,11 +13,11 @@
   <img src="https://img.shields.io/badge/version-5.0.0-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Version" />
   <img src="https://img.shields.io/badge/game-Apocalypse%20Rising%202-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Game" />
   <img src="https://img.shields.io/badge/UI-DXForge%20v1.0.19-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="DXForge" />
-  <img src="https://img.shields.io/badge/author-Lorthanyx-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Author" />
+  <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Author" />
 </p>
 
 <p align="center">
-  <sub>Full-spectrum ESP. Smooth aimbot. Premium DXForge UI. Built for AR2 on DX9 Cult of Intellect.</sub>
+  <sub>Full-spectrum ESP. Smooth aimbot. Premium DXForge UI.</sub>
 </p>
 
 ---
@@ -42,17 +42,13 @@ AR2 DOMINION is a full-featured DX9WARE script for Apocalypse Rising 2. It cover
 | Zombie Proximity Alert | — | — |
 | Vehicle ESP (31 types, 5 categories) | — | — |
 | Loot Container ESP | — | — |
-| Searchable Loot ESP (7 category filters) | — | — |
-| World Utility ESP (Fuel, Water, Ladder, Switch, Garage) | — | — |
-| Dead Body ESP + X-marker | — | — |
-| Corpse Equipment Preview | — | — |
 
 ## Components
 
 ```text
 Player ESP          Zombie ESP          Vehicle ESP
 Loot Container ESP  Searchable Loot ESP World Utility ESP
-Dead Body ESP       Corpse Gear Preview Zombie Proximity Alert
+Dead Body ESP       Zombie Proximity Alert
 Player Aimbot       Zombie Aimbot       FOV Circle
 Crosshair           Watermark           Stats Overlay
 FPS Counter         Session Timer       Location Tag
@@ -61,21 +57,20 @@ FPS Counter         Session Timer       Location Tag
 ## Install
 
 ```lua
--- Run inside DX9WARE (Cult of Intellect)
--- DXForge is downloaded and bootstrapped automatically.
--- Toggle the menu: F6
-dofile("AR2_DOMINION.lua")
+loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scripts/AR2/AR2_DOMINION.lua"))()
 ```
+
+---
 
 ## UI Layout
 
 | Tab | Groupbox | Controls |
 | --- | --- | --- |
-| ESP | Player ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Snap Lines, Nearest Indicator, Max Distance, Box/Name/Trace/Nearest Color |
-| ESP | Zombie ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Zombie Type Label, Nearest Indicator, Max Distance, Box/Name/Nearest Color |
-| ESP | Vehicle ESP | Enable, Box, Name & Category, Distance, Tracelines, Nearest Indicator, Max Distance, Name/Nearest Color |
-| ESP | Loot ESP | Enable, Box, Name, Distance, Tracelines, Max Distance, Box/Name Color |
-| ESP | Dead Body ESP | Enable, Box + X Marker, Name, Distance, Tracelines, Show Equipment, Show Dead Zombies, Show Dead Players, Max Distance, Box/Name Color |
+| ESP | Player ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Snap Lines, Nearest Indicator, Max Distance, Box / Name / Trace / Nearest Color |
+| ESP | Zombie ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Zombie Type Label, Nearest Indicator, Max Distance, Box / Name / Nearest Color |
+| ESP | Vehicle ESP | Enable, Box, Name & Category, Distance, Tracelines, Nearest Indicator, Max Distance, Name / Nearest Color |
+| ESP | Loot ESP | Enable, Box, Name, Distance, Tracelines, Max Distance, Box / Name Color |
+| ESP | Dead Body ESP | Enable, Box + X Marker, Name, Distance, Tracelines, Show Equipment, Show Dead Zombies, Show Dead Players, Max Distance, Box / Name Color |
 | ESP | Alerts | Proximity Alert, Alert Distance |
 | Aimbot | Player Aimbot | Enable, Sticky Aim, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
 | Aimbot | Zombie Aimbot | Enable, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
@@ -83,6 +78,8 @@ dofile("AR2_DOMINION.lua")
 | Visuals | Crosshair | Enable, Style, Size, Gap, Center Dot, Color |
 | Visuals | Overlays | Watermark, FPS Counter, Stats Overlay, Show Location |
 | Settings | General | Show Console, Script Info, Reset All Settings |
+
+---
 
 ## Vehicle Categories
 
@@ -96,15 +93,15 @@ dofile("AR2_DOMINION.lua")
 
 ## Searchable Loot Categories
 
-| Category | Filter Toggle |
-| --- | --- |
-| Medical | `sShowMedical` |
-| Weapon | `sShowWeapon` |
-| Food | `sShowFood` |
-| Vehicle | `sShowVehicle` |
-| Industrial | `sShowIndustrial` |
-| Utility | `sShowUtility` |
-| Civilian | `sShowCivilian` |
+| Category |
+| --- |
+| Medical |
+| Weapon |
+| Food |
+| Vehicle |
+| Industrial |
+| Utility |
+| Civilian |
 
 ## Zombie Types
 
@@ -115,6 +112,8 @@ dofile("AR2_DOMINION.lua")
 | Unique | Unique, Cultist, Hazmat, Plague, Caveman, Butcher |
 | Smuggler | Smuggler, Miner, Mobster |
 | Civilian | Civilian, Resident, Tourist, Student, Hobo, Farmer, Hunter, Camper |
+
+---
 
 ## Aimbot Reference
 
@@ -136,11 +135,12 @@ dofile("AR2_DOMINION.lua")
 4  Cross+Circle   — four-line crosshair with circle
 ```
 
+---
+
 ## Credits
 
-Script by **PixelGG**.  
-UI powered by [DXForge](../../README.md) by **PixelGG**.  
-Target: **DX9 Cult of Intellect**.
+Created by **PixelGG**.  
+UI powered by [DXForge](../../README.md) by **PixelGG**.
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=90&section=footer&color=0:14151C,55:FF4444,100:090A0F&animation=fadeIn" alt="AR2 DOMINION animated footer" width="100%" />
