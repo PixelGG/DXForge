@@ -24,34 +24,35 @@
 
 ## Overview
 
-AR2 DOMINION is a full-featured DX9WARE script for Apocalypse Rising 2. It is built around a modular ESP system covering players, zombies, vehicles, loot containers, searchable objects, world utilities, and dead bodies — paired with a dual-target aimbot, a four-style crosshair, live overlay counters, and a DXForge-powered professional UI that loads cleanly on every script execution.
+AR2 DOMINION is a full-featured DX9WARE script for Apocalypse Rising 2. It covers player ESP, zombie ESP, vehicle ESP, loot container ESP, searchable loot ESP, world utility ESP, and dead body ESP — paired with a dual-target aimbot, a four-style crosshair, live overlay counters, and a DXForge-powered UI.
 
 ## Feature Grid
 
 | ESP | Aimbot | Visuals & Overlays |
 | --- | --- | --- |
 | Player Box, Name, Distance | Player smooth aimbot | 4-style crosshair |
-| Player Health Bar | Player FOV circle | Watermark + location tag |
-| Player Skeleton & Tracelines | Sticky aim | FPS counter |
-| Player Snap Lines | 11 selectable aim parts | Stats overlay (P/Z/V/S/U/B) |
-| Zombie Box, Name, Distance | First / Third Person mode | Session timer |
-| Zombie Type Classification | Zombie smooth aimbot | DXForge startup screen |
-| Zombie Health Bar & Skeleton | Independent zombie FOV | Configurable UI toggle key |
-| Vehicle ESP (31 types, 5 categories) | FOV circle (Auto / Player / Zombie) | DX9 Cult of Intellect target |
-| Loot Container ESP (40+ containers) | — | — |
-| Searchable Loot ESP (7 categories) | — | — |
-| World Utility ESP (5 types) | — | — |
+| Player Health Bar | Player FOV circle | Watermark |
+| Player Tracelines & Skeleton | Sticky aim | FPS counter |
+| Player Snap Lines | 11 selectable aim parts | Stats overlay |
+| Player Nearest Indicator | First / Third Person mode | Session timer |
+| Zombie Box, Name, Distance | Zombie smooth aimbot | Location tag |
+| Zombie Type Classification | Independent zombie FOV | Show Console toggle |
+| Zombie Health Bar & Skeleton | FOV source: Auto / Player / Zombie | DXForge UI |
+| Zombie Nearest Indicator | — | — |
+| Zombie Proximity Alert | — | — |
+| Vehicle ESP (31 types, 5 categories) | — | — |
+| Loot Container ESP | — | — |
+| Searchable Loot ESP (7 category filters) | — | — |
+| World Utility ESP (Fuel, Water, Ladder, Switch, Garage) | — | — |
 | Dead Body ESP + X-marker | — | — |
 | Corpse Equipment Preview | — | — |
-| Zombie Proximity Alert | — | — |
-| Nearest entity indicators | — | — |
 
 ## Components
 
 ```text
 Player ESP          Zombie ESP          Vehicle ESP
 Loot Container ESP  Searchable Loot ESP World Utility ESP
-Dead Body ESP       Corpse Gear Preview Proximity Alert
+Dead Body ESP       Corpse Gear Preview Zombie Proximity Alert
 Player Aimbot       Zombie Aimbot       FOV Circle
 Crosshair           Watermark           Stats Overlay
 FPS Counter         Session Timer       Location Tag
@@ -59,46 +60,29 @@ FPS Counter         Session Timer       Location Tag
 
 ## Install
 
-Paste the script into DX9 Cult of Intellect. DXForge is fetched automatically on every run.
-
 ```lua
 -- Run inside DX9WARE (Cult of Intellect)
 -- DXForge is downloaded and bootstrapped automatically.
--- Toggle the menu with F6.
+-- Toggle the menu: F6
 dofile("AR2_DOMINION.lua")
-```
-
-DX9WARE executes Lua every frame. AR2 DOMINION guards against double-initialization via `_G.AR2_DOMINION_RUNTIME` so only one live instance runs at a time.
-
-## Quick Start
-
-```lua
--- AR2 DOMINION self-bootstraps. On first run it will:
---   1. Destroy any previous DXForge / state
---   2. Download DXForge from GitHub
---   3. Build the full DXForge window
---   4. Enter the render loop automatically
-
--- Toggle menu:  F6
--- All settings persist in _G.DOMINION_STATE across re-runs.
 ```
 
 ## UI Layout
 
-| Tab | Groupboxes | Key Controls |
+| Tab | Groupbox | Controls |
 | --- | --- | --- |
-| ESP | Player ESP | Box, Name, Health Bar, Skeleton, Tracelines, Snap Lines, Nearest |
-| ESP | Zombie ESP | Box, Name, Type Label, Health Bar, Skeleton, Tracelines, Nearest |
-| ESP | Vehicle ESP | Box, Name & Category, Distance, Tracelines, Nearest, Max Distance |
-| ESP | Loot ESP | Box, Name, Distance, Tracelines, Max Distance |
-| ESP | Dead Body ESP | Box + X Marker, Name, Distance, Equipment, Show Dead Zombies/Players |
-| ESP | Alerts | Proximity Alert toggle + Alert Distance slider |
+| ESP | Player ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Snap Lines, Nearest Indicator, Max Distance, Box/Name/Trace/Nearest Color |
+| ESP | Zombie ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Zombie Type Label, Nearest Indicator, Max Distance, Box/Name/Nearest Color |
+| ESP | Vehicle ESP | Enable, Box, Name & Category, Distance, Tracelines, Nearest Indicator, Max Distance, Name/Nearest Color |
+| ESP | Loot ESP | Enable, Box, Name, Distance, Tracelines, Max Distance, Box/Name Color |
+| ESP | Dead Body ESP | Enable, Box + X Marker, Name, Distance, Tracelines, Show Equipment, Show Dead Zombies, Show Dead Players, Max Distance, Box/Name Color |
+| ESP | Alerts | Proximity Alert, Alert Distance |
 | Aimbot | Player Aimbot | Enable, Sticky Aim, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
 | Aimbot | Zombie Aimbot | Enable, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
-| Aimbot | FOV Circle | Show, FOV Source (Auto/Player/Zombie), Color |
-| Visuals | Crosshair | Enable, Style (Cross/Dot/Circle/Cross+Circle), Size, Gap, Center Dot, Color |
+| Aimbot | FOV Circle | Show FOV Circle, FOV Source, FOV Color |
+| Visuals | Crosshair | Enable, Style, Size, Gap, Center Dot, Color |
 | Visuals | Overlays | Watermark, FPS Counter, Stats Overlay, Show Location |
-| Settings | General | Show Console, Script Info labels, Reset All Settings |
+| Settings | General | Show Console, Script Info, Reset All Settings |
 
 ## Vehicle Categories
 
@@ -112,104 +96,51 @@ DX9WARE executes Lua every frame. AR2 DOMINION guards against double-initializat
 
 ## Searchable Loot Categories
 
-| Category | Color |
+| Category | Filter Toggle |
 | --- | --- |
-| Medical | Green |
-| Weapon | Orange-Red |
-| Food | Yellow |
-| Vehicle | Blue |
-| Industrial | Light Grey |
-| Utility | Purple |
-| Civilian | Tan |
-
-Each searchable category can be individually toggled in the ESP tab. Objects include barrels, cabinets, crates, vending machines, medical kits, vehicle trunks, and more.
-
-## World Utilities
-
-| Type | Color |
-| --- | --- |
-| Fuel Pump | Amber |
-| Water Pump | Blue |
-| Ladder | Grey |
-| Switch | Yellow |
-| Garage Control | Orange |
+| Medical | `sShowMedical` |
+| Weapon | `sShowWeapon` |
+| Food | `sShowFood` |
+| Vehicle | `sShowVehicle` |
+| Industrial | `sShowIndustrial` |
+| Utility | `sShowUtility` |
+| Civilian | `sShowCivilian` |
 
 ## Zombie Types
 
-| Type | Color |
+| Type | Classification Keywords |
 | --- | --- |
-| Military | Green |
-| Police | Blue |
-| Unique | Pink |
-| Smuggler | Orange |
-| Civilian | Light Grey |
-
-Zombie type is auto-classified from the model name and displayed as a colored prefix tag in the ESP label (e.g. `[Military] Drill Sergeant`).
+| Military | Military, Soldier, Boot Camp, Drill, SWAT, SpecOps, Operator |
+| Police | Police, Security, Prison |
+| Unique | Unique, Cultist, Hazmat, Plague, Caveman, Butcher |
+| Smuggler | Smuggler, Miner, Mobster |
+| Civilian | Civilian, Resident, Tourist, Student, Hobo, Farmer, Hunter, Camper |
 
 ## Aimbot Reference
 
-| Setting | Range | Default | Description |
+| Setting | Range | Default (Player) | Default (Zombie) |
 | --- | --- | --- | --- |
-| FOV | 10 – 1000 | 350 (P) / 400 (Z) | Screen-space aim circle radius |
-| Smooth | 1 – 20 | 1.5 (P) / 1.2 (Z) | Mouse interpolation strength |
-| Sensitivity | 0.5 – 10 | 2.0 (P) / 2.5 (Z) | Per-frame correction scale |
-| Aim Part | 11 parts | Head | Target bone selection |
-| Aim Mode | First / Third Person | First Person | Camera perspective mode |
-| Sticky Aim | Toggle | Off | Locks target between frames (players only) |
+| FOV | 10 – 1000 | 350 | 400 |
+| Smooth | 1 – 20 | 1.5 | 1.2 |
+| Sensitivity | 0.5 – 10 | 2.0 | 2.5 |
+| Aim Part | Head … RightFoot (11) | Head | Head |
+| Aim Mode | First Person / Third Person | First Person | First Person |
+| Sticky Aim | Toggle | Off | — |
 
 ## Crosshair Styles
 
 ```text
-Cross          ─ Classic four-line crosshair
-Dot            ─ Single center dot
-Circle         ─ Full circle at configured radius
-Cross+Circle   ─ Four-line crosshair inside a circle
+1  Cross          — four-line crosshair
+2  Dot            — single center dot
+3  Circle         — full circle
+4  Cross+Circle   — four-line crosshair with circle
 ```
-
-All styles support an optional center dot, configurable size, gap, and color.
-
-## Stats Overlay
-
-A compact live counter rendered in the top-right corner of the screen:
-
-```text
-P: <players>      — visible player ESP entries
-Z: <zombies>      — visible zombie ESP entries
-V: <vehicles>     — visible vehicle ESP entries
-S: <searchables>  — visible searchable loot entries
-U: <utilities>    — visible world utility entries
-B: <bodies>       — visible dead body entries
-```
-
-## Performance Defaults
-
-| Cache | Interval |
-| --- | --- |
-| Entity (Players) | 1.0 s |
-| Zombies | 3.0 s |
-| Vehicles | 4.0 s |
-| Loot Containers | 2.0 s |
-| Searchable Loot | 8.0 s |
-| World Utilities | 10.0 s |
-| Dead Bodies | 2.0 s |
-| Local Player | 0.8 s |
-| Location Detection | 2.0 s |
-| Max Scan Budget | 3000 objects/refresh |
-
-## Project Layout
-
-```text
-Scripts/AR2/
-└── AR2_DOMINION.lua
-```
-
-DXForge is fetched at runtime from `raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua` and cached in `_G.DXForge` for the lifetime of the script.
 
 ## Credits
 
-Script by **Lorthanyx**.  
+Script by **PixelGG**.  
 UI powered by [DXForge](../../README.md) by **PixelGG**.  
-Target platform: **DX9 Cult of Intellect** for Roblox.
+Target: **DX9 Cult of Intellect**.
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=90&section=footer&color=0:14151C,55:FF4444,100:090A0F&animation=fadeIn" alt="AR2 DOMINION animated footer" width="100%" />
