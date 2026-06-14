@@ -1,6 +1,6 @@
 --[[
-    BRM5 WARZONE v3.0.0 - Advanced DX9WARE Combat Script
-    Made by Lorthanyx - DXForge Edition
+    BRM5 WARZONE v4.0.0 - Advanced DX9WARE Combat Script
+    Made by PixelGG - DXForge Edition
 
     Features:
       - Player & NPC ESP + Aimbot (erweitert, 10 Aim Parts)
@@ -37,7 +37,7 @@ if _G.BRM5_WARZONE_RUNTIME and type(_G.BRM5_WARZONE_RUNTIME.renderFrame) == "fun
     end
 end
 
-print("[WARZONE] v3.0.0 starting...")
+print("[WARZONE] v4.0.0 starting...")
 
 if _G.DXForge then
     _G.DXForge:Destroy()
@@ -75,7 +75,7 @@ end
 -- KONFIGURATION
 -- ============================================================
 local CFG = {
-    VERSION         = "3.0.0",
+    VERSION         = "4.0.0",
     SCRIPT_NAME     = "BRM5 WARZONE",
     TOGGLE_KEY      = "[F6]",
     NO_HOTKEY       = "[NONE]",
@@ -2659,7 +2659,7 @@ local function tabSettings(T, mx, my, click, held)
     guiLabel("Aim Parts: 11 (Head..Foot)", T.dim)
     guiSep(T)
     guiLabel(CFG.SCRIPT_NAME .. " v" .. CFG.VERSION, T.acc)
-    guiLabel("Made by Lorthanyx", T.txt)
+    guiLabel("Made by PixelGG", T.txt)
     guiLabel("DX9WARE Lua 5.1.4", T.dim)
 
     guiSep(T)
@@ -2708,7 +2708,7 @@ local function drawWindow(T, mx, my, click, held)
     dx9.DrawFilledBox({x + 1, y + 1}, {x + w - 1, y + CFG.HEADER_H}, T.panel)
     dx9.DrawFilledBox({x + 1, y + CFG.HEADER_H}, {x + w - 1, y + CFG.HEADER_H + 2}, T.acc)
     drawShadowedString({x + 10, y + 7}, T.acc, CFG.SCRIPT_NAME .. "  v" .. CFG.VERSION, {4, 4, 6})
-    dx9.DrawString({x + 180, y + 7}, T.dim, "by Lorthanyx")
+    dx9.DrawString({x + 180, y + 7}, T.dim, "by PixelGG")
     dx9.DrawString({x + w - 84, y + 7}, T.dim, "[F6] Toggle")
 
     -- Tab bar
@@ -3104,7 +3104,7 @@ local function drawWatermark(T)
     dx9.DrawBox({8, 8}, {252, 46}, T.brd)
     dx9.DrawFilledBox({8, 8}, {14, 46}, T.acc)
     drawShadowedString({20, 14}, T.acc, CFG.SCRIPT_NAME .. " v" .. CFG.VERSION, {4, 4, 6})
-    dx9.DrawString({20, 29}, T.dim, "by Lorthanyx")
+    dx9.DrawString({20, 29}, T.dim, "by PixelGG")
 end
 
 local function drawFPS(T)
@@ -3357,7 +3357,7 @@ local function drawStartupAnimation(sw, sh, T)
         local subFade = clamp((totalDuration - elapsed) / 1.0, 0, 1)
         local alpha = subT * subFade
         if alpha > 0.05 then
-            local subtitle = "Made by Lorthanyx"
+            local subtitle = "Made by PixelGG"
             local subX = cx - (#subtitle * 3.5)
             local subCol = scaleColor(lerpColor({28, 28, 36}, {240, 240, 245}, alpha), sceneFade)
             drawShadowedString({subX, cy + 8}, subCol, subtitle, {4, 4, 6})
@@ -3671,7 +3671,7 @@ if not S.initialized then
     addNotif("Ronograd data aktiv: Vehicles, Loot, Ammo, Spawner", 5)
     DXForge:Notify({ Text = CFG.SCRIPT_NAME .. " ready.", Type = "Success", Duration = 4 })
     print("[WARZONE] v" .. CFG.VERSION .. " erfolgreich geladen!")
-    print("[WARZONE] Made by Lorthanyx")
+    print("[WARZONE] Made by PixelGG")
     print("[WARZONE] Toggle: F6 | DXForge | 11 Aim Parts")
     print("[WARZONE] ESP: Players, NPCs, Vehicles, Loot, Ammo, Spawner")
     print("")

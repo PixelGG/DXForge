@@ -10,10 +10,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=FF3C3C" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-3.0.0-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Version" />
+  <img src="https://img.shields.io/badge/version-4.0.0-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Version" />
   <img src="https://img.shields.io/badge/game-Ronograd-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Game" />
   <img src="https://img.shields.io/badge/UI-DXForge%20v1.0.19-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="DXForge" />
-  <img src="https://img.shields.io/badge/author-Lorthanyx-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Author" />
+  <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Author" />
 </p>
 
 <p align="center">
@@ -140,7 +140,7 @@ LeftFoot      RightFoot
 
 ## Credits
 
-Created by **Lorthanyx**.  
+Created by **PixelGG**.  
 UI powered by [DXForge](../../README.md) by **PixelGG**.
 
 <p align="center">
