@@ -1,6 +1,6 @@
 --[[
     AR2 DOMINION v5.0.0 - Apocalypse Rising 2 DX9WARE Script
-    Target: DX9 Cult of Intellect | UI: DXForge v1.1.3 (Performance Profile)
+    Target: DX9 Cult of Intellect | UI: DXForge v1.0.19
     
     Features:
       - Player ESP (Box, Name, Distance, Health Bar, Tracelines, Skeleton, Snap Lines)
@@ -52,7 +52,6 @@ collectgarbage()
 -- LOAD DXFORGE
 -- ============================================================
 local DXForge
-local DXFORGE_UI_VERSION = "1.1.3"
 do
     local code = dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua")
     if not code or code == "" then
@@ -76,45 +75,6 @@ do
     _G.DXForge = DXForge
     print("[AR2 DOMINION] DXForge " .. tostring(DXForge.__DXFORGE_VERSION) .. " loaded")
 end
-
-local function applyDXForgePerformanceProfile()
-    if not DXForge then return end
-
-    if DXForge.CurvedEdges then
-        DXForge:CurvedEdges(false)
-    end
-
-    DXForge.Config.StartupDuration = 0
-    DXForge.Runtime.StartupQueued = false
-    DXForge.Runtime.StartupCompleted = true
-    DXForge.Startup = nil
-    if DXForge.AssetLoader and DXForge.AssetLoader.releaseStartupLogo then
-        pcall(function()
-            DXForge.AssetLoader:releaseStartupLogo()
-        end)
-    end
-
-    local design = DXForge.Design or {}
-    design.CurvedEdges = false
-    design.Radius = 0
-    design.WindowRadius = 0
-    design.GroupboxRadius = 0
-    design.ControlRadius = 0
-    design.ButtonRadius = 0
-    design.DropdownRadius = 0
-    design.ToggleRadius = 0
-    design.ToggleKnobRadius = 0
-    design.SliderRadius = 0
-    design.PopupRadius = 0
-    design.NotificationRadius = 0
-    design.TooltipRadius = 0
-    DXForge.Design = design
-
-    DXForge:SetFOVCircle(false)
-    DXForge:SetWatermark({ Text = "AR2 DOMINION  |  DX9 COI", Visible = false })
-end
-
-applyDXForgePerformanceProfile()
 
 -- ============================================================
 -- CONFIGURATION
@@ -1748,7 +1708,7 @@ local function updateFPS(now)
 end
 
 local function updateWatermark(now, ws)
-    if not DXForge then return end
+    if not DXForge or not S.wmark then return end
     local sessionMin = round((now - S.sessionStart) / 60, 0)
     local location = S.showLocation and detectLocation(ws, now) or nil
     local text = "AR2 DOMINION  |  DX9 COI"
@@ -1756,14 +1716,10 @@ local function updateWatermark(now, ws)
         text = text .. "  |  " .. location
     end
     text = text .. "  |  " .. sessionMin .. "m"
-    if S.lastWatermarkText ~= text or S.lastWatermarkVisible ~= S.wmark then
-        S.lastWatermarkText = text
-        S.lastWatermarkVisible = S.wmark
-        DXForge:SetWatermark({
-            Text = text,
-            Visible = S.wmark,
-        })
-    end
+    DXForge:SetWatermark({
+        Text = text,
+        Visible = S.wmark,
+    })
 end
 
 local function drawStatsOverlay(sw)
@@ -1958,7 +1914,7 @@ local function buildUI()
         end })
         box:AddDivider("Script Info")
         box:AddLabel("AR2 DOMINION v5.0.0  |  DX9 Cult of Intellect")
-        box:AddLabel("UI: DXForge v" .. DXFORGE_UI_VERSION .. "  |  Flat Performance Profile")
+        box:AddLabel("UI: DXForge v1.0.19  |  by Lorthanyx")
         box:AddLabel(#CFG.VEHICLE_NAMES .. " Vehicle Types  |  " .. #CFG.LOOT_CONTAINERS .. " Loot Containers")
         box:AddButton({ Text="Reset All Settings", Callback=function()
             _G.DOMINION_STATE = nil
