@@ -8,7 +8,7 @@
       - Ammo/Loot ESP (Ammo762, Ammo50, AmmoCrate, AmmoLong, ...)
       - Spawner ESP (Spawn-Posts, Vendor, Company, FOB)
       - Erweiterte Visuals & Crosshair
-      - Professionelle Startup-Animation
+      - DXForge Flat Performance Profile
       - DXForge UI mit 5 Tabs
 
     DX9WARE Lua 5.1.4 | dx9 library
@@ -47,6 +47,7 @@ _G.WARZONE = nil
 collectgarbage()
 
 local DXForge
+local DXFORGE_UI_VERSION = "1.1.3"
 local RUNTIME_ID = tostring({})
 do
     local code = dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/DXForge.lua")
@@ -69,6 +70,43 @@ do
     end
     _G.DXForge = DXForge
     print("[WARZONE] DXForge " .. tostring(DXForge.__DXFORGE_VERSION) .. " loaded")
+end
+
+local function applyDXForgePerformanceProfile()
+    if not DXForge then return end
+
+    if DXForge.CurvedEdges then
+        DXForge:CurvedEdges(false)
+    end
+
+    DXForge.Config.StartupDuration = 0
+    DXForge.Runtime.StartupQueued = false
+    DXForge.Runtime.StartupCompleted = true
+    DXForge.Startup = nil
+    if DXForge.AssetLoader and DXForge.AssetLoader.releaseStartupLogo then
+        pcall(function()
+            DXForge.AssetLoader:releaseStartupLogo()
+        end)
+    end
+
+    local design = DXForge.Design or {}
+    design.CurvedEdges = false
+    design.Radius = 0
+    design.WindowRadius = 0
+    design.GroupboxRadius = 0
+    design.ControlRadius = 0
+    design.ButtonRadius = 0
+    design.DropdownRadius = 0
+    design.ToggleRadius = 0
+    design.ToggleKnobRadius = 0
+    design.SliderRadius = 0
+    design.PopupRadius = 0
+    design.NotificationRadius = 0
+    design.TooltipRadius = 0
+    DXForge.Design = design
+
+    DXForge:SetFOVCircle(false)
+    DXForge:SetWatermark({ Text = CFG and CFG.SCRIPT_NAME or "BRM5 WARZONE", Visible = false })
 end
 
 -- ============================================================
@@ -243,6 +281,8 @@ local CFG = {
         "Armory", "Supply", "Depot", "Spawn",
     },
 }
+
+applyDXForgePerformanceProfile()
 
 -- ============================================================
 -- PERSISTENTER STATE in _G
@@ -2056,10 +2096,15 @@ end
 
 local function updateWatermark(now)
     if not DXForge then return end
-    DXForge:SetWatermark({
-        Text = CFG.SCRIPT_NAME .. " | " .. S.loc .. " | " .. formatTime(now - S.sessionStart),
-        Visible = S.wmark,
-    })
+    local text = CFG.SCRIPT_NAME .. " | " .. S.loc .. " | " .. formatTime(now - S.sessionStart)
+    if S.lastWatermarkText ~= text or S.lastWatermarkVisible ~= S.wmark then
+        S.lastWatermarkText = text
+        S.lastWatermarkVisible = S.wmark
+        DXForge:SetWatermark({
+            Text = text,
+            Visible = S.wmark,
+        })
+    end
 end
 
 local function buildUI()
@@ -2191,7 +2236,7 @@ local function buildUI()
         local box = tab:AddGroupbox("General", "full")
         box:AddLabel("Place: OW_Ronograd | PlaceId: 3701546109")
         box:AddLabel("Explorer dump: 156744 objects | 3768 readable scripts")
-        box:AddLabel("UI: DXForge via dx9.Get loudstring")
+        box:AddLabel("UI: DXForge v" .. DXFORGE_UI_VERSION .. " | Flat Performance Profile")
         box:AddButton({ Text="Reset All Caches", Callback=function()
             resetCaches()
             DXForge:Notify({ Text="Caches reset.", Type="Warning", Duration=3 })
