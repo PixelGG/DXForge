@@ -31,7 +31,7 @@
 ]]
 
 local DXForge = _G.DXForge
-if DXForge and DXForge.__DXFORGE_VERSION == "1.1.3" then
+if DXForge and DXForge.__DXFORGE_VERSION == "1.0.19" then
     return DXForge
 end
 
@@ -161,7 +161,7 @@ end
 ---@field Themes table<string, DXForgeTheme>
 
 DXForge = {
-    __DXFORGE_VERSION = "1.1.3",
+    __DXFORGE_VERSION = "1.0.19",
     Name = "DXForge",
     Author = "PixelGG",
     Signature = "PixelGG",
@@ -171,13 +171,6 @@ DXForge = {
     Themes = {},
     ActiveTheme = "Default",
     Notifications = {},
-    ConfigFolder = "DXForge",
-    ConfigItems = {},
-    WindowsByConfigKey = {},
-    PendingConfigData = nil,
-    PendingConfigOptions = nil,
-    ThemeOverrides = {},
-    AutoSave = nil,
     FOVCircle = {
         Visible = false,
         Radius = 90,
@@ -198,10 +191,6 @@ DXForge = {
         ActiveWindow = nil,
         InputWindow = nil,
         HoveredTooltip = nil,
-        TooltipLayoutCache = {},
-        TooltipPosition = nil,
-        TooltipOwner = nil,
-        TooltipSince = nil,
         PopupOwner = nil,
         StartupQueued = false,
         StartupCompleted = false
@@ -232,29 +221,11 @@ DXForge = {
         Padding = 12,
         GroupPadding = 12,
         AnimationSpeed = 15,
-        ComponentAnimations = true,
         StartupDuration = 3.15,
-        TooltipDelay = 0.25,
-        TooltipFadeSpeed = 14,
-        TooltipMaxWidth = 260,
-        TooltipPadding = 8,
-        TooltipOffset = {14, 16},
-        TooltipFollowStrength = 0.18
+        TooltipDelay = 0.25
     },
     Design = {
-        CurvedEdges = true,
-        Radius = 6,
-        WindowRadius = 10,
-        GroupboxRadius = 8,
-        ControlRadius = 6,
-        ButtonRadius = 6,
-        ToggleRadius = 11,
-        ToggleKnobRadius = 8,
-        DropdownRadius = 7,
-        PopupRadius = 8,
-        NotificationRadius = 8,
-        TooltipRadius = 6,
-        SliderRadius = 6,
+        Radius = 4,
         WindowInset = 14,
         ContentInset = 14,
         ComponentGap = 8,
@@ -640,242 +611,6 @@ local function splitLines(text)
     return lines
 end
 
-local function trimString(value)
-    return tostring(value or ""):gsub("^%s+", ""):gsub("%s+$", "")
-end
-
-local function sanitizeConfigSegment(value)
-    value = trimString(value):lower()
-    value = value:gsub("[^%w_%-]+", "_")
-    value = value:gsub("_+", "_")
-    value = value:gsub("^_+", "")
-    value = value:gsub("_+$", "")
-    if value == "" then value = "item" end
-    return value
-end
-
-local function joinPath(a, b)
-    a = tostring(a or ""):gsub("[/\\]+$", "")
-    b = tostring(b or ""):gsub("^[/\\]+", "")
-    if a == "" then return b end
-    if b == "" then return a end
-    return a .. "/" .. b
-end
-
-local function writeJsonString(value)
-    value = tostring(value or "")
-    value = value:gsub("\\", "\\\\")
-    value = value:gsub("\"", "\\\"")
-    value = value:gsub("\r", "\\r")
-    value = value:gsub("\n", "\\n")
-    value = value:gsub("\t", "\\t")
-    return "\"" .. value .. "\""
-end
-
-local function isSequentialArray(value)
-    if type(value) ~= "table" then return false end
-    local count = 0
-    for key in pairs(value) do
-        if type(key) ~= "number" or key < 1 or key % 1 ~= 0 then
-            return false
-        end
-        count = count + 1
-    end
-    for index = 1, count do
-        if value[index] == nil then return false end
-    end
-    return true
-end
-
-local function encodeJsonValue(value, depth)
-    depth = depth or 0
-    local valueType = type(value)
-    if valueType == "nil" then
-        return "null"
-    elseif valueType == "boolean" then
-        return value and "true" or "false"
-    elseif valueType == "number" then
-        if value ~= value or value == math.huge or value == -math.huge then
-            return "0"
-        end
-        return tostring(value)
-    elseif valueType == "string" then
-        return writeJsonString(value)
-    elseif valueType ~= "table" then
-        return writeJsonString(tostring(value))
-    end
-
-    local indent = string.rep("  ", depth)
-    local childIndent = string.rep("  ", depth + 1)
-    if isSequentialArray(value) then
-        local out = {}
-        for index = 1, #value do
-            out[#out + 1] = childIndent .. encodeJsonValue(value[index], depth + 1)
-        end
-        if #out == 0 then return "[]" end
-        return "[\n" .. table.concat(out, ",\n") .. "\n" .. indent .. "]"
-    end
-
-    local keys = {}
-    for key in pairs(value) do
-        keys[#keys + 1] = tostring(key)
-    end
-    table.sort(keys)
-    local out = {}
-    for _, key in ipairs(keys) do
-        out[#out + 1] = childIndent .. writeJsonString(key) .. ": " .. encodeJsonValue(value[key], depth + 1)
-    end
-    if #out == 0 then return "{}" end
-    return "{\n" .. table.concat(out, ",\n") .. "\n" .. indent .. "}"
-end
-
-local function decodeJson(text)
-    text = tostring(text or "")
-    local index = 1
-    local length = #text
-
-    local function skipWhitespace()
-        while index <= length do
-            local char = string.sub(text, index, index)
-            if char ~= " " and char ~= "\n" and char ~= "\r" and char ~= "\t" then
-                break
-            end
-            index = index + 1
-        end
-    end
-
-    local parseValue
-
-    local function parseString()
-        index = index + 1
-        local out = {}
-        while index <= length do
-            local char = string.sub(text, index, index)
-            if char == "\"" then
-                index = index + 1
-                return table.concat(out)
-            elseif char == "\\" then
-                local nextChar = string.sub(text, index + 1, index + 1)
-                if nextChar == "\"" or nextChar == "\\" or nextChar == "/" then
-                    out[#out + 1] = nextChar
-                elseif nextChar == "n" then
-                    out[#out + 1] = "\n"
-                elseif nextChar == "r" then
-                    out[#out + 1] = "\r"
-                elseif nextChar == "t" then
-                    out[#out + 1] = "\t"
-                else
-                    out[#out + 1] = nextChar
-                end
-                index = index + 2
-            else
-                out[#out + 1] = char
-                index = index + 1
-            end
-        end
-        error("unterminated string")
-    end
-
-    local function parseNumber()
-        local startIndex = index
-        while index <= length do
-            local char = string.sub(text, index, index)
-            if not string.find("+-0123456789.eE", char, 1, true) then break end
-            index = index + 1
-        end
-        return tonumber(string.sub(text, startIndex, index - 1))
-    end
-
-    local function parseArray()
-        index = index + 1
-        skipWhitespace()
-        local out = {}
-        if string.sub(text, index, index) == "]" then
-            index = index + 1
-            return out
-        end
-        while true do
-            out[#out + 1] = parseValue()
-            skipWhitespace()
-            local char = string.sub(text, index, index)
-            if char == "]" then
-                index = index + 1
-                break
-            elseif char ~= "," then
-                error("expected ',' or ']'")
-            end
-            index = index + 1
-            skipWhitespace()
-        end
-        return out
-    end
-
-    local function parseObject()
-        index = index + 1
-        skipWhitespace()
-        local out = {}
-        if string.sub(text, index, index) == "}" then
-            index = index + 1
-            return out
-        end
-        while true do
-            if string.sub(text, index, index) ~= "\"" then
-                error("expected string key")
-            end
-            local key = parseString()
-            skipWhitespace()
-            if string.sub(text, index, index) ~= ":" then
-                error("expected ':'")
-            end
-            index = index + 1
-            skipWhitespace()
-            out[key] = parseValue()
-            skipWhitespace()
-            local char = string.sub(text, index, index)
-            if char == "}" then
-                index = index + 1
-                break
-            elseif char ~= "," then
-                error("expected ',' or '}'")
-            end
-            index = index + 1
-            skipWhitespace()
-        end
-        return out
-    end
-
-    function parseValue()
-        skipWhitespace()
-        local char = string.sub(text, index, index)
-        if char == "\"" then
-            return parseString()
-        elseif char == "{" then
-            return parseObject()
-        elseif char == "[" then
-            return parseArray()
-        elseif char == "-" or char:match("%d") then
-            return parseNumber()
-        elseif string.sub(text, index, index + 3) == "true" then
-            index = index + 4
-            return true
-        elseif string.sub(text, index, index + 4) == "false" then
-            index = index + 5
-            return false
-        elseif string.sub(text, index, index + 3) == "null" then
-            index = index + 4
-            return nil
-        end
-        error("unexpected token at " .. tostring(index))
-    end
-
-    local value = parseValue()
-    skipWhitespace()
-    if index <= length then
-        error("trailing data")
-    end
-    return value
-end
-
 local function inferThemeKey(text)
     local lowered = string.lower(tostring(text or ""))
     if string.find(lowered, "accent", 1, true) then return "AccentColor" end
@@ -1029,7 +764,6 @@ function DXForge:UpdateTheme(name, values)
     local theme = self.Themes[resolved]
     for key, value in pairs(values) do
         theme[key] = normalizeColor(value, theme[key])
-        self:TrackThemeOverride(resolved, key, theme[key])
     end
     return self
 end
@@ -1056,14 +790,10 @@ function DXForge:SetThemeColor(key, color)
     end
 
     theme[key] = normalizeColor(color, theme[key])
-    self:TrackThemeOverride(self.ActiveTheme, key, theme[key])
     if key == "AccentColor" then
         theme.GlowColor = blend(theme.AccentColor, {255, 255, 255}, 0.18)
         theme.AccentDimColor = blend(theme.AccentColor, theme.BackgroundColor, 0.68)
         theme.AccentSoftColor = blend(theme.AccentColor, theme.PanelColor, 0.42)
-        self:TrackThemeOverride(self.ActiveTheme, "GlowColor", theme.GlowColor)
-        self:TrackThemeOverride(self.ActiveTheme, "AccentDimColor", theme.AccentDimColor)
-        self:TrackThemeOverride(self.ActiveTheme, "AccentSoftColor", theme.AccentSoftColor)
     end
     return self
 end
@@ -1123,367 +853,6 @@ end
 function DXForge:GetTheme(name)
     local resolved = self:ResolveThemeName(name or self.ActiveTheme)
     return self.Themes[resolved or "Default"] or self.Themes.Default
-end
-
---// Config Persistence --------------------------------------------------------
-
-local function debugConfig(message)
-    if DXForge.Debug then
-        print("[DXForge:Config] " .. tostring(message))
-    end
-end
-
-local function hasFunction(name)
-    return type(_G[name]) == "function"
-end
-
-local function safeFsCall(name, ...)
-    local fn = _G[name]
-    if type(fn) ~= "function" then
-        return false, "missing:" .. tostring(name)
-    end
-    local ok, result = pcall(fn, ...)
-    if not ok then
-        return false, tostring(result)
-    end
-    return true, result
-end
-
-local function deepCopyValue(value)
-    if type(value) ~= "table" then return value end
-    local out = {}
-    for key, child in pairs(value) do
-        out[key] = deepCopyValue(child)
-    end
-    return out
-end
-
-function DXForge:NormalizeConfigName(name)
-    name = trimString(name)
-    if name == "" then name = "default" end
-    if not name:lower():match("%.json$") then
-        name = name .. ".json"
-    end
-    name = name:gsub("[\\/:*?\"<>|]", "_")
-    return name
-end
-
-function DXForge:SetConfigFolder(folder)
-    folder = trimString(folder)
-    if folder == "" then folder = "DXForge" end
-    self.ConfigFolder = folder
-    if hasFunction("isfolder") and hasFunction("makefolder") then
-        local ok, exists = safeFsCall("isfolder", folder)
-        if ok and not exists then
-            local made, err = safeFsCall("makefolder", folder)
-            if not made then
-                debugConfig("Failed to create folder '" .. folder .. "': " .. tostring(err))
-            end
-        end
-    end
-    return self
-end
-
-function DXForge:GetConfigPath(name)
-    return joinPath(self.ConfigFolder or "DXForge", self:NormalizeConfigName(name))
-end
-
-function DXForge:TrackThemeOverride(themeName, key, color)
-    themeName = self:ResolveThemeName(themeName or self.ActiveTheme) or self.ActiveTheme or "Default"
-    if not self.ThemeOverrides[themeName] then
-        self.ThemeOverrides[themeName] = {}
-    end
-    self.ThemeOverrides[themeName][key] = normalizeColor(color, self:GetTheme(themeName)[key])
-    return self
-end
-
-function DXForge:BuildComponentConfigKey(component)
-    if component.ConfigId and component.ConfigId ~= "" then
-        return tostring(component.ConfigId)
-    end
-    local groupbox = component.Groupbox
-    local tab = groupbox and groupbox.Tab
-    local window = tab and tab.Window
-    return table.concat({
-        window and sanitizeConfigSegment(window.Title) or "window",
-        tab and sanitizeConfigSegment(tab.Name) or "tab",
-        groupbox and sanitizeConfigSegment(groupbox.Title) or "group",
-        sanitizeConfigSegment(component.Text or component.Kind or "component")
-    }, "/")
-end
-
-function DXForge:RegisterConfigItem(component)
-    if type(component) ~= "table" then return component end
-    component.ConfigType = component.ConfigType or component.Kind
-    component.ConfigKey = component.ConfigKey or self:BuildComponentConfigKey(component)
-    if self.ConfigItems[component.ConfigKey] and self.ConfigItems[component.ConfigKey] ~= component then
-        local baseKey = component.ConfigKey
-        local suffix = 2
-        while self.ConfigItems[baseKey .. "_" .. suffix] do
-            suffix = suffix + 1
-        end
-        component.ConfigKey = baseKey .. "_" .. suffix
-    end
-    if component.GetConfigValue then
-        self.ConfigItems[component.ConfigKey] = component
-        if self.PendingConfigData and self.PendingConfigData.Components then
-            local entry = self.PendingConfigData.Components[component.ConfigKey]
-            if entry and entry.Value ~= nil and component.SetConfigValue then
-                component:SetConfigValue(entry.Value, not (self.PendingConfigOptions and self.PendingConfigOptions.Callbacks == true))
-            end
-        end
-    end
-    return component
-end
-
-function DXForge:RegisterWindow(window)
-    if type(window) ~= "table" then return window end
-    window.ConfigKey = window.ConfigId or tostring(window.Title or "Window")
-    self.WindowsByConfigKey[window.ConfigKey] = window
-    if self.PendingConfigData and self.PendingConfigData.Windows then
-        local saved = self.PendingConfigData.Windows[window.ConfigKey]
-        if type(saved) == "table" then
-            if type(saved.Position) == "table" then
-                local sw, sh = Render.screen()
-                local pos = normalizeVec2(saved.Position, window.Position)
-                window.Position = {
-                    clamp(pos[1], 0, math.max(0, sw - 40)),
-                    clamp(pos[2], 0, math.max(0, sh - 40))
-                }
-            end
-            if type(saved.Size) == "table" then
-                window:Resize(saved.Size)
-            end
-            if saved.Open ~= nil then
-                window:SetOpen(saved.Open == true)
-            end
-            window.PendingSelectedTab = saved.SelectedTab
-        end
-    end
-    return window
-end
-
-function DXForge:RegisterTab(tab)
-    if type(tab) ~= "table" then return tab end
-    local window = tab.Window
-    if window and window.PendingSelectedTab and window.PendingSelectedTab == tab.Name then
-        window.ActiveTab = tab
-    end
-    return tab
-end
-
-function DXForge:CollectConfig()
-    local data = {
-        Version = self.__DXFORGE_VERSION,
-        Library = "DXForge",
-        Theme = self.ActiveTheme,
-        ThemeOverrides = deepCopyValue(self.ThemeOverrides),
-        Design = {
-            CurvedEdges = self.Design and self.Design.CurvedEdges
-        },
-        Windows = {},
-        Components = {}
-    }
-
-    for _, window in ipairs(self.Windows) do
-        data.Windows[window.ConfigKey or window.Title] = {
-            Position = {window.Position[1], window.Position[2]},
-            Size = {window.Size[1], window.Size[2]},
-            Open = window.Open == true,
-            SelectedTab = window.ActiveTab and window.ActiveTab.Name or nil
-        }
-    end
-
-    for key, component in pairs(self.ConfigItems) do
-        if component.GetConfigValue then
-            local value = component:GetConfigValue()
-            if value ~= nil then
-                data.Components[key] = {
-                    Type = component.ConfigType or component.Kind,
-                    Value = deepCopyValue(value)
-                }
-            end
-        end
-    end
-
-    return data
-end
-
-function DXForge:ApplyConfig(data, options)
-    if type(data) ~= "table" then return false, "invalid config data" end
-    options = type(options) == "table" and options or {}
-    local silent = options.Callbacks ~= true
-
-    if data.Theme and self:ResolveThemeName(data.Theme) then
-        self:SetTheme(data.Theme)
-    end
-
-    if type(data.ThemeOverrides) == "table" then
-        for themeName, overrides in pairs(data.ThemeOverrides) do
-            if self.Themes[themeName] and type(overrides) == "table" then
-                for key, color in pairs(overrides) do
-                    self.Themes[themeName][key] = normalizeColor(color, self.Themes[themeName][key])
-                    self:TrackThemeOverride(themeName, key, self.Themes[themeName][key])
-                end
-            end
-        end
-    end
-
-    if type(data.Design) == "table" and data.Design.CurvedEdges ~= nil and self.CurvedEdges then
-        self:CurvedEdges(data.Design.CurvedEdges == true)
-    end
-
-    if type(data.Windows) == "table" then
-        for key, saved in pairs(data.Windows) do
-            local window = self.WindowsByConfigKey[key]
-            if window and type(saved) == "table" then
-                if type(saved.Position) == "table" then
-                    local sw, sh = Render.screen()
-                    local pos = normalizeVec2(saved.Position, window.Position)
-                    window.Position = {
-                        clamp(pos[1], 0, math.max(0, sw - 40)),
-                        clamp(pos[2], 0, math.max(0, sh - 40))
-                    }
-                end
-                if type(saved.Size) == "table" then
-                    window:Resize(saved.Size)
-                end
-                if saved.Open ~= nil then
-                    window:SetOpen(saved.Open == true)
-                end
-                if saved.SelectedTab then
-                    window.PendingSelectedTab = saved.SelectedTab
-                    for _, tab in ipairs(window.Tabs) do
-                        if tab.Name == saved.SelectedTab then
-                            window.ActiveTab = tab
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    if type(data.Components) == "table" then
-        for key, entry in pairs(data.Components) do
-            local component = self.ConfigItems[key]
-            if component and component.SetConfigValue and type(entry) == "table" then
-                component:SetConfigValue(deepCopyValue(entry.Value), silent)
-            end
-        end
-    end
-
-    self.PendingConfigData = data
-    self.PendingConfigOptions = options
-    return true
-end
-
-function DXForge:SaveConfig(name, options)
-    options = type(options) == "table" and options or {}
-    if not hasFunction("writefile") then
-        debugConfig("writefile is unavailable; config save skipped")
-        return false, "writefile unavailable"
-    end
-
-    self:SetConfigFolder(self.ConfigFolder or "DXForge")
-    local path = self:GetConfigPath(name)
-    local ok, err = safeFsCall("writefile", path, encodeJsonValue(self:CollectConfig()))
-    if not ok then
-        if not options.SilentNotify and self.Notify then
-            self:Notify({Text = "Config save failed: " .. tostring(err), Type = "Error", Duration = 3})
-        end
-        return false, err
-    end
-    if not options.SilentNotify and self.Notify then
-        self:Notify({Text = "Saved config: " .. self:NormalizeConfigName(name), Type = "Success", Duration = 2})
-    end
-    return true
-end
-
-function DXForge:LoadConfig(name, options)
-    options = type(options) == "table" and options or {}
-    if not hasFunction("readfile") or not hasFunction("isfile") then
-        debugConfig("readfile/isfile unavailable; config load skipped")
-        return false, "readfile unavailable"
-    end
-
-    local path = self:GetConfigPath(name)
-    local exists, found = safeFsCall("isfile", path)
-    if not exists or not found then
-        return false, "config not found"
-    end
-    local readOk, contents = safeFsCall("readfile", path)
-    if not readOk then
-        return false, contents
-    end
-    local ok, data = pcall(decodeJson, contents)
-    if not ok or type(data) ~= "table" then
-        debugConfig("Failed to decode config '" .. path .. "': " .. tostring(data))
-        if not options.SilentNotify and self.Notify then
-            self:Notify({Text = "Config load failed.", Type = "Error", Duration = 3})
-        end
-        return false, "invalid config"
-    end
-
-    self.PendingConfigData = data
-    self.PendingConfigOptions = options
-    local applied, reason = self:ApplyConfig(data, options)
-    if applied and not options.SilentNotify and self.Notify then
-        self:Notify({Text = "Loaded config: " .. self:NormalizeConfigName(name), Type = "Success", Duration = 2})
-    end
-    return applied, reason
-end
-
-function DXForge:DeleteConfig(name)
-    if not hasFunction("delfile") or not hasFunction("isfile") then
-        debugConfig("delfile/isfile unavailable; config delete skipped")
-        return false, "delfile unavailable"
-    end
-    local path = self:GetConfigPath(name)
-    local exists, found = safeFsCall("isfile", path)
-    if not exists or not found then
-        return false, "config not found"
-    end
-    local ok, err = safeFsCall("delfile", path)
-    if not ok then
-        return false, err
-    end
-    return true
-end
-
-function DXForge:GetConfigList()
-    if not hasFunction("listfiles") then
-        debugConfig("listfiles unavailable; returning empty config list")
-        return {}
-    end
-    local ok, files = safeFsCall("listfiles", self.ConfigFolder or "DXForge")
-    if not ok or type(files) ~= "table" then
-        return {}
-    end
-    local out = {}
-    for _, path in ipairs(files) do
-        local name = tostring(path):match("([^/\\]+)$") or tostring(path)
-        if name:lower():match("%.json$") then
-            out[#out + 1] = name
-        end
-    end
-    table.sort(out)
-    return out
-end
-
-function DXForge:EnableAutoSave(options)
-    options = type(options) == "table" and options or {}
-    self.AutoSave = {
-        File = self:NormalizeConfigName(options.File or options.Name or "default.json"),
-        Interval = math.max(1, tonumber(options.Interval) or 2),
-        LastAt = os.clock()
-    }
-    return self
-end
-
-function DXForge:DisableAutoSave()
-    self.AutoSave = nil
-    return self
 end
 
 --// Render Utilities ----------------------------------------------------------
@@ -1691,108 +1060,15 @@ function Render.text(pos, color, text)
     end
 end
 
-local roundedInsetCache = {}
-
-local function curvedEdgesEnabled()
-    return not not (DXForge and DXForge.Design and DXForge.Design.CurvedEdges ~= false)
-end
-
-local function clampRoundedRadius(w, h, radius)
-    radius = math.max(0, math.floor(tonumber(radius) or 0))
-    return math.min(radius, math.floor(math.min(math.abs(w), math.abs(h)) * 0.5))
-end
-
-local function roundedInset(radius, row)
-    if radius <= 0 then return 0 end
-    local bucket = roundedInsetCache[radius]
-    if not bucket then
-        bucket = {}
-        roundedInsetCache[radius] = bucket
-    end
-    if bucket[row] ~= nil then return bucket[row] end
-    local dy = radius - row - 0.5
-    local inset = math.floor(math.max(0, radius - math.sqrt(math.max(0, radius * radius - dy * dy))) + 0.5)
-    bucket[row] = inset
-    return inset
-end
-
-function Render.roundedFilled(x, y, w, h, color, radius)
-    local rect = normalizeRect(x, y, w, h)
-    x, y, w, h = rect.x, rect.y, rect.w, rect.h
-    radius = clampRoundedRadius(w, h, radius)
-    if w <= 0 or h <= 0 then return end
-    if radius <= 0 or not curvedEdgesEnabled() then
-        return Render.filled({x, y}, {x + w, y + h}, color)
-    end
-
-    Render.filled({x + radius, y}, {x + w - radius, y + h}, color)
-    for row = 0, radius - 1 do
-        local inset = roundedInset(radius, row)
-        Render.filled({x + inset, y + row}, {x + w - inset, y + row + 1}, color)
-        Render.filled({x + inset, y + h - row - 1}, {x + w - inset, y + h - row}, color)
-    end
-end
-
-function Render.roundedOutline(x, y, w, h, color, radius, thickness)
-    local rect = normalizeRect(x, y, w, h)
-    x, y, w, h = rect.x, rect.y, rect.w, rect.h
-    thickness = math.max(1, math.floor(tonumber(thickness) or 1))
-    radius = clampRoundedRadius(w, h, radius)
-    if w <= 0 or h <= 0 then return end
-    if radius <= 0 or not curvedEdgesEnabled() then
-        for i = 0, thickness - 1 do
-            Render.box({x + i, y + i}, {x + w - i, y + h - i}, color)
-        end
-        return
-    end
-
-    for i = 0, thickness - 1 do
-        local ix, iy, iw, ih = x + i, y + i, w - i * 2, h - i * 2
-        local ir = clampRoundedRadius(iw, ih, math.max(0, radius - i))
-        if iw <= 0 or ih <= 0 then break end
-        if ir <= 0 then
-            Render.box({ix, iy}, {ix + iw, iy + ih}, color)
-        else
-            for row = 0, ir - 1 do
-                local inset = roundedInset(ir, row)
-                Render.filled({ix + inset, iy + row}, {ix + iw - inset, iy + row + 1}, color)
-                Render.filled({ix + inset, iy + ih - row - 1}, {ix + iw - inset, iy + ih - row}, color)
-            end
-            if ih - ir * 2 > 0 then
-                Render.filled({ix, iy + ir}, {ix + 1, iy + ih - ir}, color)
-                Render.filled({ix + iw - 1, iy + ir}, {ix + iw, iy + ih - ir}, color)
-            end
-        end
-    end
-end
-
-function Render.roundedFrame(x, y, w, h, fillColor, borderColor, radius, borderThickness)
-    borderThickness = math.max(1, math.floor(tonumber(borderThickness) or 1))
-    if borderColor then
-        Render.roundedFilled(x, y, w, h, borderColor, radius)
-        Render.roundedFilled(
-            x + borderThickness,
-            y + borderThickness,
-            w - borderThickness * 2,
-            h - borderThickness * 2,
-            fillColor,
-            math.max(0, (tonumber(radius) or 0) - borderThickness)
-        )
-    else
-        Render.roundedFilled(x, y, w, h, fillColor, radius)
-    end
-end
-
 function Render.panel(x, y, w, h, theme, accent)
-    local radius = DXForge.Design.WindowRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x + 9, y + 11, w, h, theme.ShadowColor, radius)
-    Render.roundedFilled(x + 5, y + 7, w, h, {1, 2, 4}, radius)
-    Render.roundedFilled(x - 2, y - 2, w + 4, h + 4, theme.ShadowColor, radius + 2)
-    Render.roundedFilled(x - 1, y - 1, w + 2, h + 2, theme.BorderStrongColor or theme.OutlineColor, radius + 1)
-    Render.roundedFilled(x, y, w, h, theme.OutlineColor, radius)
-    Render.roundedFilled(x + 1, y + 1, w - 2, h - 2, theme.WindowColor or theme.MainColor, math.max(0, radius - 1))
-    Render.roundedFilled(x + 2, y + 2, w - 4, h - 4, theme.PanelColor, math.max(0, radius - 2))
-    Render.roundedFilled(x + 3, y + 3, w - 6, 28, theme.HeaderColor or blend(theme.PanelColor, {42, 44, 55}, 0.48), math.max(0, radius - 3))
+    Render.filled({x + 9, y + 11}, {x + w + 9, y + h + 11}, theme.ShadowColor)
+    Render.filled({x + 5, y + 7}, {x + w + 5, y + h + 7}, {1, 2, 4})
+    Render.filled({x - 2, y - 2}, {x + w + 2, y + h + 2}, theme.ShadowColor)
+    Render.filled({x - 1, y - 1}, {x + w + 1, y + h + 1}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.WindowColor or theme.MainColor)
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, theme.PanelColor)
+    Render.filled({x + 3, y + 3}, {x + w - 3, y + 31}, theme.HeaderColor or blend(theme.PanelColor, {42, 44, 55}, 0.48))
     Render.filled({x + 3, y + 32}, {x + w - 3, y + 33}, theme.BorderSoftColor or theme.OutlineColor)
     Render.filled({x + 3, y + h - 4}, {x + w - 3, y + h - 3}, theme.SurfaceDarkColor or {4, 5, 8})
     if accent then
@@ -1806,11 +1082,10 @@ end
 function Render.surface(x, y, w, h, theme, active, hovered)
     local base = active and (theme.ActiveColor or theme.PanelColor) or (theme.SurfaceColor or theme.PanelColor)
     local fill = hovered and blend(base, theme.HoverColor, 0.58) or base
-    local radius = DXForge.Design.ControlRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x + 2, y + 3, w, h, theme.ShadowColor, radius)
-    Render.roundedFilled(x, y, w, h, active and theme.AccentColor or (theme.BorderSoftColor or theme.OutlineColor), radius)
-    Render.roundedFilled(x + 1, y + 1, w - 2, h - 2, theme.SurfaceDarkColor or {7, 8, 12}, math.max(0, radius - 1))
-    Render.roundedFilled(x + 2, y + 2, w - 4, h - 4, fill, math.max(0, radius - 2))
+    Render.filled({x + 2, y + 3}, {x + w + 2, y + h + 3}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, active and theme.AccentColor or (theme.BorderSoftColor or theme.OutlineColor))
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, fill)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, active and theme.GlowColor or (theme.SurfaceLightColor or {42, 44, 55}))
     Render.filled({x + 2, y + h - 3}, {x + w - 2, y + h - 2}, theme.SurfaceDarkColor or {5, 6, 9})
 end
@@ -1824,11 +1099,10 @@ function Render.accentLine(x, y, w, theme, active)
 end
 
 function Render.innerFrame(x, y, w, h, theme)
-    local radius = math.max(0, (DXForge.Design.WindowRadius or DXForge.Design.Radius or 0) - 2)
-    Render.roundedFilled(x + 3, y + 4, w, h, theme.ShadowColor, radius)
-    Render.roundedFilled(x, y, w, h, theme.OutlineColor, radius)
-    Render.roundedFilled(x + 1, y + 1, w - 2, h - 2, theme.SurfaceDarkColor or {5, 6, 10}, math.max(0, radius - 1))
-    Render.roundedFilled(x + 2, y + 2, w - 4, h - 4, theme.BackgroundColor, math.max(0, radius - 2))
+    Render.filled({x + 3, y + 4}, {x + w + 3, y + h + 4}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {5, 6, 10})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + h - 2}, theme.BackgroundColor)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.SurfaceLightColor or {43, 45, 56})
     Render.filled({x + 2, y + h - 3}, {x + w - 2, y + h - 2}, {2, 3, 6})
 end
@@ -2280,99 +1554,6 @@ function DXForge:Pulse(speed)
     return (math.sin((os.clock() - self.Runtime.StartedAt) * (speed or 3)) + 1) / 2
 end
 
-local function animatedColor(baseColor, targetColor, amount)
-    return blend(baseColor, targetColor, clamp(tonumber(amount) or 0, 0, 1))
-end
-
-local function getAnim(component, key)
-    return component and component.Anim and clamp(tonumber(component.Anim[key]) or 0, 0, 1) or 0
-end
-
---[[
-    Shared component animation state.
-
-    Every component gets the same lightweight animation channels so controls can
-    opt into hover/focus/open/recording polish without duplicating state logic.
-]]
-function DXForge:InitComponentAnim(component)
-    if type(component) ~= "table" then return nil end
-    local anim = component.Anim
-    if type(anim) ~= "table" then
-        anim = {}
-        component.Anim = anim
-    end
-    anim.Hover = clamp(tonumber(anim.Hover) or 0, 0, 1)
-    anim.Active = clamp(tonumber(anim.Active) or 0, 0, 1)
-    anim.Focus = clamp(tonumber(anim.Focus) or 0, 0, 1)
-    anim.Open = clamp(tonumber(anim.Open) or 0, 0, 1)
-    anim.Recording = clamp(tonumber(anim.Recording) or 0, 0, 1)
-    return anim
-end
-
-function DXForge:UpdateComponentAnim(component, states, speed)
-    local anim = self:InitComponentAnim(component)
-    if not anim then return nil end
-    states = type(states) == "table" and states or {}
-    local enabled = self.Config.ComponentAnimations ~= false
-    for _, key in ipairs({"Hover", "Active", "Focus", "Open", "Recording"}) do
-        local state = states[key]
-        local target
-        if type(state) == "number" then
-            target = clamp(state, 0, 1)
-        else
-            target = state and 1 or 0
-        end
-
-        if enabled then
-            local animSpeed = speed
-            if type(speed) == "table" then
-                animSpeed = speed[key] or speed.Default or self.Config.AnimationSpeed
-            end
-            anim[key] = clamp(self:Animate(component.Id .. ":anim:" .. key, target, animSpeed or self.Config.AnimationSpeed), 0, 1)
-        else
-            anim[key] = target
-        end
-    end
-    return anim
-end
-
-function DXForge:GetComponentAnim(component, key)
-    if type(key) ~= "string" then return 0 end
-    return getAnim(component, key)
-end
-
---[[
-    Curved edge design toggle.
-
-    Supports both colon-calls and direct compatibility aliases:
-        DXForge:CurvedEdges(true)
-        DXForge.CurvedEdges(true)
-        DXForge.CurvedEdge(true)
-        DXForge.Curvededge(true)
-]]
-local function resolveCurvedEdgeArgs(selfOrValue, value)
-    if type(selfOrValue) == "table" and selfOrValue == DXForge then
-        return selfOrValue, value
-    end
-    return DXForge, selfOrValue
-end
-
-function DXForge.SetCurvedEdges(selfOrValue, value)
-    local self, state = resolveCurvedEdgeArgs(selfOrValue, value)
-    if state == nil then
-        return self.Design.CurvedEdges ~= false
-    end
-    self.Design.CurvedEdges = state == true
-    return self
-end
-
-function DXForge.CurvedEdges(selfOrValue, value)
-    return DXForge.SetCurvedEdges(selfOrValue, value)
-end
-
-DXForge.CurvedEdge = DXForge.CurvedEdges
-DXForge.Curvededge = DXForge.CurvedEdges
-
 --// Component Base ------------------------------------------------------------
 
 local Component = {}
@@ -2387,14 +1568,11 @@ function Component:new(kind, groupbox, config)
         Text = tostring(config.Text or config.Name or kind),
         Tooltip = config.Tooltip,
         Callback = config.Callback,
-        ConfigId = config.ConfigId and tostring(config.ConfigId) or nil,
-        ConfigType = kind,
         Height = config.Height or DXForge.Config.RowHeight,
         Visible = config.Visible ~= false,
         Bounds = {0, 0, 0, 0},
         Hovered = false
     }, self)
-    DXForge:InitComponentAnim(object)
     return object
 end
 
@@ -2428,33 +1606,17 @@ function Component:SetVisible(value)
     return self
 end
 
-function Component:GetValue()
-    return nil
-end
-
-function Component:GetConfigValue()
-    return self:GetValue()
-end
-
-function Component:SetConfigValue(value, silent)
-    if self.SetValue then
-        return self:SetValue(value, silent)
-    end
-    return self
-end
-
 function Component:layout(x, y, w)
     self.Bounds = {x, y, w, self.Height}
     return self.Height
 end
 
 function Component:updateHover()
-    DXForge:InitComponentAnim(self)
     local b = self.Bounds
     self.ClippedVisible = Render.IsInsideClipRect(b[1], b[2], b[3], b[4])
     self.Hovered = self.ClippedVisible and Input:hover(b[1], b[2], b[3], b[4])
     if self.Hovered and self.Tooltip then
-        DXForge:SetTooltip(self.Id, self.Tooltip, b, {Keybind = self.Keybind})
+        DXForge.Runtime.HoveredTooltip = {Text = self.Tooltip, Since = self.TooltipSince or os.clock()}
         self.TooltipSince = self.TooltipSince or os.clock()
     else
         self.TooltipSince = nil
@@ -2518,19 +1680,16 @@ function Button:render(theme)
     end
     Input:release(self.Id)
 
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Active = pressed}, {Hover = 16, Active = 24})
-    local hover = getAnim(self, "Hover")
-    local press = getAnim(self, "Active")
-    local fill = animatedColor(theme.PanelColor, theme.HoverColor, hover * 0.72)
-    fill = animatedColor(fill, theme.AccentColor, press * 0.24)
-    local borderColor = animatedColor(theme.BorderSoftColor or theme.OutlineColor, theme.AccentColor, hover * 0.55 + press * 0.2)
+    local hover = DXForge:Animate(self.Id .. ":hover", self.Hovered and 1 or 0, 16)
+    local press = DXForge:Animate(self.Id .. ":press", pressed and 1 or 0, 24)
+    local fill = blend(theme.PanelColor, theme.HoverColor, hover)
+    if pressed then fill = blend(fill, theme.AccentColor, 0.28) end
     Render.surface(b[1], b[2], b[3], b[4], theme, pressed, self.Hovered)
-    Render.roundedOutline(b[1], b[2], b[3], b[4], borderColor, DXForge.Design.ButtonRadius or DXForge.Design.ControlRadius or 0, 1)
-    Render.roundedFilled(b[1] + 2, b[2] + 2, b[3] - 4, b[4] - 4, fill, math.max(0, (DXForge.Design.ButtonRadius or DXForge.Design.ControlRadius or 0) - 2))
-    Render.filled({b[1] + 4, b[2] + 4}, {b[1] + b[3] - 4, b[2] + 5}, animatedColor(theme.SurfaceLightColor, theme.AccentColor, hover * 0.35))
-    Render.roundedFilled(b[1] + 5, b[2] + b[4] - 6, (b[3] - 10) * hover, 2, animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, hover), 1)
-    Render.roundedFilled(b[1] + 5, b[2] + 7, 2, b[4] - 14, animatedColor(theme.AccentColor, theme.PanelColor, 1 - hover), 1)
-    Render.text({b[1] + 13, b[2] + 9 + math.floor(press + 0.5)}, theme.FontColor, Render.trimText(self.Text, b[3] - 26))
+    Render.filled({b[1] + 2, b[2] + 2}, {b[1] + b[3] - 2, b[2] + b[4] - 2}, fill)
+    Render.filled({b[1] + 4, b[2] + 4}, {b[1] + b[3] - 4, b[2] + 5}, blend(theme.SurfaceLightColor, theme.AccentColor, hover * 0.35))
+    Render.filled({b[1] + 5, b[2] + b[4] - 6}, {b[1] + 5 + (b[3] - 10) * hover, b[2] + b[4] - 4}, theme.AccentColor)
+    Render.filled({b[1] + 5, b[2] + 7}, {b[1] + 7, b[2] + b[4] - 7}, blend(theme.AccentColor, theme.PanelColor, 1 - hover))
+    Render.text({b[1] + 13, b[2] + 9 + press}, theme.FontColor, Render.trimText(self.Text, b[3] - 26))
 end
 
 local Toggle = setmetatable({}, Component)
@@ -2566,10 +1725,6 @@ function Toggle:SetValue(value, silent)
     return self
 end
 
-function Toggle:GetValue()
-    return self.Value == true
-end
-
 function Toggle:render(theme)
     self:updateHover()
     local b = self.Bounds
@@ -2583,58 +1738,25 @@ function Toggle:render(theme)
         self:SetValue(not self.Value)
     end
 
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Active = self.Value}, {Hover = 15, Active = 18})
     local t = DXForge:Animate(self.Id .. ":value", self.Value and 1 or 0, 18)
-    local hover = getAnim(self, "Hover")
-    local activeAnim = getAnim(self, "Active")
+    local hover = DXForge:Animate(self.Id .. ":hover", self.Hovered and 1 or 0, 15)
     Render.text({b[1] + 1, b[2] + 9}, self.Value and theme.FontColor or theme.TextMutedColor, Render.trimText(self.Text, b[3] - 82))
 
     local sx, sy, sw, sh = b[1] + b[3] - DXForge.Design.ToggleWidth - 2, b[2] + 5, DXForge.Design.ToggleWidth, DXForge.Design.ToggleHeight
-    if DXForge.Design.CurvedEdges == false then
-        local activeFill = animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, 0.38 + t * 0.34 + hover * 0.08)
-        Render.filled({sx + 3, sy + 4}, {sx + sw + 3, sy + sh + 4}, theme.ShadowColor)
-        Render.filled({sx, sy}, {sx + sw, sy + sh}, animatedColor(self.Value and theme.AccentColor or (theme.BorderStrongColor or theme.OutlineColor), theme.GlowColor, hover * 0.22))
-        Render.filled({sx + 1, sy + 1}, {sx + sw - 1, sy + sh - 1}, theme.SurfaceDarkColor or {8, 9, 13})
-        Render.filled({sx + 3, sy + 3}, {sx + sw - 3, sy + sh - 3}, self.Value and activeFill or animatedColor({18, 20, 28}, theme.HoverColor, hover * 0.32))
-        Render.filled({sx + 5, sy + sh - 5}, {sx + 5 + (sw - 10) * t, sy + sh - 3}, animatedColor(theme.GlowColor, theme.AccentColor, activeAnim * 0.4))
-        Render.filled({sx + 5, sy + 4}, {sx + sw - 5, sy + 5}, animatedColor(theme.SurfaceLightColor, theme.FontColor, hover * 0.22))
-        local knob = sx + 4 + (sw - 20) * t
-        Render.filled({knob + 2, sy + 5}, {knob + 18, sy + sh - 4}, theme.ShadowColor)
-        Render.filled({knob, sy + 3}, {knob + 18, sy + sh - 3}, self.Value and animatedColor(theme.FontColor, theme.AccentColor, activeAnim * 0.14) or animatedColor({142, 146, 160}, theme.FontColor, hover * 0.14))
-        Render.filled({knob + 3, sy + 6}, {knob + 15, sy + 7}, self.Value and blend(theme.FontColor, theme.AccentColor, 0.32) or {196, 199, 210})
-        local stateText = self.Value and "ON" or "OFF"
-        local stateX = self.Value and (sx + 8) or (sx + sw - Render.textWidth(stateText) - 8)
-        Render.text({stateX, sy + 5}, self.Value and animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, activeAnim * 0.5) or animatedColor(theme.DisabledColor, theme.FontColor, hover * 0.2), stateText)
-        return
-    end
-
-    local trackRadius = DXForge.Design.ToggleRadius or math.floor(sh * 0.5)
-    local knobRadius = DXForge.Design.ToggleKnobRadius or math.floor((sh - 6) * 0.5)
-    local outerColor = self.Value and animatedColor(theme.AccentColor, theme.GlowColor, 0.16 + hover * 0.14) or animatedColor(theme.BorderStrongColor or theme.OutlineColor, theme.AccentColor, hover * 0.28)
-    local innerColor = self.Value and animatedColor(theme.AccentDimColor or theme.AccentColor, theme.SurfaceColor or theme.PanelColor, math.max(0, 0.18 - t * 0.08 - hover * 0.04)) or animatedColor(theme.SurfaceDarkColor or {10, 11, 16}, theme.HoverColor, hover * 0.22)
+    local activeFill = blend(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, 0.38 + t * 0.34)
+    Render.filled({sx + 3, sy + 4}, {sx + sw + 3, sy + sh + 4}, theme.ShadowColor)
+    Render.filled({sx, sy}, {sx + sw, sy + sh}, self.Value and theme.AccentColor or (theme.BorderStrongColor or theme.OutlineColor))
+    Render.filled({sx + 1, sy + 1}, {sx + sw - 1, sy + sh - 1}, theme.SurfaceDarkColor or {8, 9, 13})
+    Render.filled({sx + 3, sy + 3}, {sx + sw - 3, sy + sh - 3}, self.Value and activeFill or {18, 20, 28})
+    Render.filled({sx + 5, sy + sh - 5}, {sx + 5 + (sw - 10) * t, sy + sh - 3}, theme.GlowColor)
+    Render.filled({sx + 5, sy + 4}, {sx + sw - 5, sy + 5}, blend(theme.SurfaceLightColor, theme.FontColor, hover * 0.22))
+    local knob = sx + 4 + (sw - 20) * t
+    Render.filled({knob + 2, sy + 5}, {knob + 18, sy + sh - 4}, theme.ShadowColor)
+    Render.filled({knob, sy + 3}, {knob + 18, sy + sh - 3}, self.Value and theme.FontColor or {142, 146, 160})
+    Render.filled({knob + 3, sy + 6}, {knob + 15, sy + 7}, self.Value and blend(theme.FontColor, theme.AccentColor, 0.32) or {196, 199, 210})
     local stateText = self.Value and "ON" or "OFF"
-    local stateColor = self.Value and animatedColor(theme.TextMutedColor, theme.FontColor, activeAnim) or animatedColor(theme.TextMutedColor, theme.FontColor, hover * 0.18)
-    local glowWidth = math.max(0, math.floor((sw - 14) * t))
-
-    Render.roundedFilled(sx + 3, sy + 4, sw, sh, theme.ShadowColor, trackRadius)
-    if self.Value then
-        Render.roundedFilled(sx - 2, sy - 1, sw + 4, sh + 2, blend(theme.GlowColor, theme.AccentColor, 0.35 + hover * 0.15), trackRadius + 1)
-    end
-    Render.roundedFrame(sx, sy, sw, sh, theme.SurfaceDarkColor or {8, 9, 13}, outerColor, trackRadius, 1)
-    Render.roundedFilled(sx + 2, sy + 2, sw - 4, sh - 4, innerColor, math.max(0, trackRadius - 2))
-    Render.roundedFilled(sx + 3, sy + 3, sw - 6, 2, blend(theme.SurfaceLightColor or theme.FontColor, theme.FontColor, hover * 0.18), math.max(0, trackRadius - 3))
-    if glowWidth > 0 then
-        Render.roundedFilled(sx + 7, sy + sh - 6, glowWidth, 3, theme.GlowColor, 1)
-    end
-
-    local knobTravel = sw - 20
-    local knobX = sx + 2 + knobTravel * t
-    Render.roundedFilled(knobX + 2, sy + 5, 16, sh - 8, theme.ShadowColor, knobRadius)
-    Render.roundedFrame(knobX, sy + 3, 18, sh - 6, self.Value and animatedColor(theme.FontColor, theme.AccentColor, 0.12 + activeAnim * 0.06) or animatedColor({164, 168, 182}, theme.FontColor, hover * 0.14), self.Value and theme.FontColor or animatedColor({124, 128, 142}, theme.FontColor, hover * 0.18), knobRadius, 1)
-    Render.roundedFilled(knobX + 3, sy + 6, 12, 2, self.Value and blend(theme.FontColor, theme.AccentColor, 0.32) or {206, 209, 220}, 1)
-
-    local stateX = self.Value and (sx + 9) or (sx + sw - Render.textWidth(stateText) - 9)
-    Render.text({stateX, sy + 5}, stateColor, stateText)
+    local stateX = self.Value and (sx + 8) or (sx + sw - Render.textWidth(stateText) - 8)
+    Render.text({stateX, sy + 5}, self.Value and theme.AccentColor or theme.DisabledColor, stateText)
 end
 
 local Slider = setmetatable({}, Component)
@@ -2673,10 +1795,6 @@ function Slider:SetValue(value, silent)
     return self
 end
 
-function Slider:GetValue()
-    return self.Value
-end
-
 function Slider:render(theme)
     self:updateHover()
     local b = self.Bounds
@@ -2694,23 +1812,18 @@ function Slider:render(theme)
     end
     Input:release(self.Id)
 
-    local dragging = Input.ActiveId == self.Id and Input.MouseDown
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Active = dragging}, {Hover = 15, Active = 20})
     self.DisplayValue = lerp(self.DisplayValue, self.Value, 1 - math.exp(-18 * DXForge.Runtime.Delta))
     local range = self.Max - self.Min
     local pct = range == 0 and 0 or (self.DisplayValue - self.Min) / range
-    local hover = getAnim(self, "Hover")
-    local active = getAnim(self, "Active")
-    local sliderRadius = DXForge.Design.SliderRadius or DXForge.Design.ControlRadius or 0
-    Render.roundedFilled(bx + 1, by + 3, bw, bh, theme.ShadowColor, sliderRadius)
-    Render.roundedFrame(bx, by - 1, bw, bh + 2, theme.SurfaceDarkColor or {10, 11, 16}, animatedColor(theme.BorderSoftColor or theme.OutlineColor, theme.AccentColor, hover * 0.3 + active * 0.25), sliderRadius, 1)
-    Render.roundedFilled(bx + 3, by + 3, bw - 6, bh - 6, animatedColor(theme.SurfaceColor or {20, 22, 29}, theme.HoverColor, hover * 0.22), math.max(0, sliderRadius - 2))
-    Render.roundedFilled(bx + 3, by + 3, (bw - 6) * pct, bh - 6, animatedColor(blend(theme.GlowColor, theme.AccentColor, 0.45), theme.FontColor, hover * 0.08 + active * 0.12), math.max(0, sliderRadius - 2))
+    Render.filled({bx + 1, by + 3}, {bx + bw + 1, by + bh + 3}, theme.ShadowColor)
+    Render.filled({bx, by - 1}, {bx + bw, by + bh + 1}, theme.BorderSoftColor or theme.OutlineColor)
+    Render.filled({bx + 1, by}, {bx + bw - 1, by + bh}, theme.SurfaceDarkColor or {10, 11, 16})
+    Render.filled({bx + 3, by + 3}, {bx + bw - 3, by + bh - 3}, theme.SurfaceColor or {20, 22, 29})
+    Render.filled({bx + 3, by + 3}, {bx + 3 + (bw - 6) * pct, by + bh - 3}, blend(theme.GlowColor, theme.AccentColor, 0.45))
     local knob = bx + bw * pct
-    local knobGrow = math.floor((hover * 1.5) + (active * 2.5))
-    Render.roundedFilled(knob - 6 - knobGrow, by - 6 - knobGrow, 12 + knobGrow * 2, bh + 12 + knobGrow * 2, theme.ShadowColor, (DXForge.Design.ToggleKnobRadius or 6) + knobGrow)
-    Render.roundedFilled(knob - 5 - knobGrow, by - 5 - knobGrow, 10 + knobGrow * 2, bh + 10 + knobGrow * 2, animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, 0.45 + active * 0.35), (DXForge.Design.ToggleKnobRadius or 5) + knobGrow)
-    Render.roundedFilled(knob - 2, by - 2, 4, bh + 4, animatedColor(theme.FontColor, theme.GlowColor, active * 0.08), 2)
+    Render.filled({knob - 6, by - 6}, {knob + 6, by + bh + 6}, theme.ShadowColor)
+    Render.filled({knob - 5, by - 5}, {knob + 5, by + bh + 5}, theme.AccentColor)
+    Render.filled({knob - 2, by - 2}, {knob + 2, by + bh + 2}, theme.FontColor)
 end
 
 local Dropdown = setmetatable({}, Component)
@@ -2760,41 +1873,6 @@ function Dropdown:setSelected(value)
     end
 end
 
-function Dropdown:SetValue(value, silent)
-    if self.Multi then
-        self.Selected = {}
-        if type(value) == "table" then
-            for _, item in ipairs(value) do
-                self.Selected[item] = true
-            end
-        end
-        if not silent then
-            local selected = {}
-            for _, item in ipairs(self.Values) do
-                if self.Selected[item] then selected[#selected + 1] = item end
-            end
-            safeCall("MultiDropdown:" .. self.Text, self.Callback, selected)
-        end
-    else
-        self.Selected = value
-        if not silent then
-            safeCall("Dropdown:" .. self.Text, self.Callback, self.Selected)
-        end
-    end
-    return self
-end
-
-function Dropdown:GetValue()
-    if not self.Multi then return self.Selected end
-    local out = {}
-    for _, value in ipairs(self.Values) do
-        if self.Selected[value] then
-            out[#out + 1] = value
-        end
-    end
-    return out
-end
-
 function Dropdown:render(theme)
     self:updateHover()
     local b = self.Bounds
@@ -2812,24 +1890,20 @@ function Dropdown:render(theme)
     end
     Input:release(headerId)
 
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Active = self.Open, Open = self.Open}, {Hover = 16, Active = 18, Open = 18})
-    local hover = getAnim(self, "Hover")
-    local openAmount = getAnim(self, "Open")
-    local active = getAnim(self, "Active")
+    local openAmount = DXForge:Animate(self.Id .. ":open", self.Open and 1 or 0, 18)
     Render.surface(bx, by, bw, bh, theme, self.Open, self.Hovered)
-    Render.roundedOutline(bx, by, bw, bh, animatedColor(theme.BorderSoftColor or theme.OutlineColor, theme.AccentColor, hover * 0.45 + active * 0.35), DXForge.Design.DropdownRadius or DXForge.Design.ControlRadius or 0, 1)
-    Render.roundedFilled(bx + 4, by + bh - 5, (bw - 8) * openAmount, 2, animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, active * 0.65), 1)
+    Render.filled({bx + 4, by + bh - 5}, {bx + 4 + (bw - 8) * openAmount, by + bh - 3}, theme.AccentColor)
     Render.filled({bx + bw - 28, by + 4}, {bx + bw - 27, by + bh - 4}, theme.BorderSoftColor or theme.OutlineColor)
-    Render.text({bx + 10, by + 6}, animatedColor(theme.TextMutedColor, theme.FontColor, active * 0.85 + hover * 0.15), Render.trimText(self:displayText(), bw - 42))
+    Render.text({bx + 10, by + 6}, self.Open and theme.FontColor or theme.TextMutedColor, Render.trimText(self:displayText(), bw - 42))
     Render.text({bx + bw - 18, by + 5}, theme.AccentColor, self.Open and "^" or "v")
 
     if openAmount > 0.02 then
         local itemHeight = 22
         local visibleCount = math.min(#self.Values, 8)
         local ph = visibleCount * itemHeight * openAmount
-        local popupRadius = DXForge.Design.PopupRadius or DXForge.Design.DropdownRadius or DXForge.Design.ControlRadius or 0
-        Render.roundedFilled(bx + 4, by + bh + 7, bw, ph, theme.ShadowColor, popupRadius)
-        Render.roundedFrame(bx, by + bh + 2, bw, ph, theme.SurfaceDarkColor or {7, 8, 12}, theme.OutlineColor, popupRadius, 1)
+        Render.filled({bx + 4, by + bh + 7}, {bx + bw + 4, by + bh + 7 + ph}, theme.ShadowColor)
+        Render.filled({bx, by + bh + 2}, {bx + bw, by + bh + 2 + ph}, theme.OutlineColor)
+        Render.filled({bx + 1, by + bh + 3}, {bx + bw - 1, by + bh + 1 + ph}, theme.SurfaceDarkColor or {7, 8, 12})
         Render.filled({bx + 2, by + bh + 3}, {bx + bw - 2, by + bh + 4}, theme.AccentColor)
         if self.Open then
             local maxScrollIndex = math.max(1, #self.Values - visibleCount + 1)
@@ -2861,8 +1935,8 @@ function Dropdown:render(theme)
                 end
                 Input:release(scrollId)
 
-                Render.roundedFilled(trackX, trackY, 4, trackH, theme.BorderSoftColor or theme.OutlineColor, 2)
-                Render.roundedFilled(trackX - 1, thumbY, 6, thumbH, self.ScrollDragging and theme.AccentColor or theme.GlowColor, 3)
+                Render.filled({trackX, trackY}, {trackX + 4, trackY + trackH}, theme.BorderSoftColor or theme.OutlineColor)
+                Render.filled({trackX - 1, thumbY}, {trackX + 5, thumbY + thumbH}, self.ScrollDragging and theme.AccentColor or theme.GlowColor)
             end
 
             for index = 1, visibleCount do
@@ -2875,12 +1949,12 @@ function Dropdown:render(theme)
                 local hovered = Input:hover(bx + 1, iy, itemW, itemHeight)
                 local selected = self.Multi and self.Selected[value] or self.Selected == value
                 if hovered then
-                    Render.roundedFilled(bx + 2, iy, itemW - 2, itemHeight, animatedColor(theme.SurfaceColor or theme.PanelColor, theme.HoverColor, 0.9), 4)
+                    Render.filled({bx + 2, iy}, {bx + itemW, iy + itemHeight}, theme.HoverColor)
                 end
                 if selected then
-                    Render.roundedFilled(bx + 3, iy + 3, 2, itemHeight - 6, theme.AccentColor, 1)
+                    Render.filled({bx + 3, iy + 3}, {bx + 5, iy + itemHeight - 3}, theme.AccentColor)
                 end
-                Render.text({bx + 11, iy + 4}, selected and theme.AccentColor or (hovered and animatedColor(theme.FontColor, theme.AccentColor, 0.14) or theme.FontColor), Render.trimText(tostring(value), itemW - 20))
+                Render.text({bx + 11, iy + 4}, selected and theme.AccentColor or theme.FontColor, Render.trimText(tostring(value), itemW - 20))
                 if Input:clicked(itemId, bx + 1, iy, itemW, itemHeight) then
                     self:setSelected(value)
                 end
@@ -2926,10 +2000,6 @@ function Textbox:SetValue(value, silent)
     return self
 end
 
-function Textbox:GetValue()
-    return self.Value
-end
-
 function Textbox:render(theme)
     self:updateHover()
     local b = self.Bounds
@@ -2970,20 +2040,15 @@ function Textbox:render(theme)
     end
 
     local active = Input.FocusText == self
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Focus = active}, {Hover = 16, Focus = 18})
-    local hover = getAnim(self, "Hover")
-    local focus = getAnim(self, "Focus")
     Render.surface(bx, by, bw, bh, theme, active, self.Hovered)
-    Render.roundedOutline(bx, by, bw, bh, animatedColor(theme.BorderSoftColor or theme.OutlineColor, theme.AccentColor, focus * 0.65 + hover * 0.22), DXForge.Design.ControlRadius or DXForge.Design.Radius or 0, 1)
-    Render.roundedFilled(bx + 4, by + bh - 5, bw - 8, 2, active and theme.AccentColor or animatedColor(theme.BorderSoftColor or {33, 35, 44}, theme.GlowColor, hover * 0.18), 1)
+    Render.filled({bx + 4, by + bh - 5}, {bx + bw - 4, by + bh - 3}, active and theme.AccentColor or (theme.BorderSoftColor or {33, 35, 44}))
     local shown = self.Value ~= "" and self.Value or self.Placeholder
-    Render.text({bx + 10, by + 6}, self.Value ~= "" and animatedColor(theme.FontColor, theme.AccentColor, focus * 0.08) or animatedColor(theme.TextMutedColor, theme.FontColor, hover * 0.08), Render.trimText(shown, bw - 20 - clearW))
+    Render.text({bx + 10, by + 6}, self.Value ~= "" and theme.FontColor or theme.TextMutedColor, Render.trimText(shown, bw - 20 - clearW))
     if clearVisible then
         local hoveredClear = Input:hover(clearX, by + 2, 20, bh - 4)
-        local clearHover = DXForge:Animate(clearId .. ":hover", hoveredClear and 1 or 0, 18)
-        Render.roundedFilled(clearX, by + 4, 18, bh - 8, animatedColor(theme.SurfaceDarkColor, theme.HoverColor, clearHover), 4)
-        Render.line({clearX + 6, by + 9}, {clearX + 13, by + 16}, clearHover > 0 and animatedColor(theme.TextMutedColor, theme.AccentColor, clearHover) or theme.TextMutedColor)
-        Render.line({clearX + 13, by + 9}, {clearX + 6, by + 16}, clearHover > 0 and animatedColor(theme.TextMutedColor, theme.AccentColor, clearHover) or theme.TextMutedColor)
+        Render.filled({clearX, by + 4}, {clearX + 18, by + bh - 4}, hoveredClear and theme.HoverColor or theme.SurfaceDarkColor)
+        Render.line({clearX + 6, by + 9}, {clearX + 13, by + 16}, hoveredClear and theme.AccentColor or theme.TextMutedColor)
+        Render.line({clearX + 13, by + 9}, {clearX + 6, by + 16}, hoveredClear and theme.AccentColor or theme.TextMutedColor)
     end
 end
 
@@ -3020,14 +2085,6 @@ function Keybind:SetKey(key, silent)
     return self
 end
 
-function Keybind:SetValue(value, silent)
-    return self:SetKey(value, silent)
-end
-
-function Keybind:GetValue()
-    return self.Key
-end
-
 function Keybind:render(theme)
     self:updateHover()
     local b = self.Bounds
@@ -3059,17 +2116,11 @@ function Keybind:render(theme)
         safeCall("Keybind:" .. self.Text, self.Callback, self.Key, self.State)
     end
 
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Active = self.State, Recording = self.Reading}, {Hover = 16, Active = 16, Recording = 22})
-    local hover = getAnim(self, "Hover")
-    local active = getAnim(self, "Active")
-    local recording = getAnim(self, "Recording")
-    local recordPulse = recording * (0.45 + DXForge:Pulse(8) * 0.55)
     Render.surface(bx, by, bw, bh, theme, self.Reading or self.State, self.Hovered)
-    Render.roundedOutline(bx, by, bw, bh, animatedColor(theme.BorderSoftColor or theme.OutlineColor, theme.AccentColor, hover * 0.25 + active * 0.38 + recordPulse * 0.7), DXForge.Design.ControlRadius or DXForge.Design.Radius or 0, 1)
     if self.Reading or self.State then
-        Render.roundedFilled(bx + 4, by + bh - 5, bw - 8, 2, animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, active * 0.55 + recordPulse * 0.45), 1)
+        Render.filled({bx + 4, by + bh - 5}, {bx + bw - 4, by + bh - 3}, theme.AccentColor)
     end
-    Render.text({bx + 8, by + 6}, self.State and theme.AccentColor or animatedColor(theme.TextMutedColor, theme.FontColor, hover * 0.12 + recordPulse * 0.35), Render.trimText(self.Reading and "Press key" or self.Key, bw - 16))
+    Render.text({bx + 8, by + 6}, self.State and theme.AccentColor or theme.TextMutedColor, Render.trimText(self.Reading and "Press key" or self.Key, bw - 16))
 end
 
 local ColorPicker = setmetatable({}, Component)
@@ -3094,14 +2145,10 @@ function ColorPicker:applyThemeColor()
     local theme = DXForge:GetTheme()
     if not theme[self.ThemeKey] then return end
     theme[self.ThemeKey] = normalizeColor(self.Value, theme[self.ThemeKey])
-    DXForge:TrackThemeOverride(DXForge.ActiveTheme, self.ThemeKey, theme[self.ThemeKey])
     if self.ThemeKey == "AccentColor" then
         theme.GlowColor = blend(theme.AccentColor, {255, 255, 255}, 0.18)
         theme.AccentDimColor = blend(theme.AccentColor, theme.BackgroundColor, 0.68)
         theme.AccentSoftColor = blend(theme.AccentColor, theme.PanelColor, 0.42)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "GlowColor", theme.GlowColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "AccentDimColor", theme.AccentDimColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "AccentSoftColor", theme.AccentSoftColor)
     elseif self.ThemeKey == "MainColor" then
         theme.WindowColor = copyColor(theme.MainColor)
         theme.HeaderColor = blend(theme.MainColor, {44, 46, 58}, 0.45)
@@ -3109,12 +2156,6 @@ function ColorPicker:applyThemeColor()
         theme.SurfaceColor = blend(theme.MainColor, {28, 30, 38}, 0.5)
         theme.SurfaceDarkColor = blend(theme.MainColor, {3, 4, 7}, 0.55)
         theme.PanelColor = blend(theme.MainColor, {28, 30, 40}, 0.5)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "WindowColor", theme.WindowColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "HeaderColor", theme.HeaderColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "HeaderDarkColor", theme.HeaderDarkColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "SurfaceColor", theme.SurfaceColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "SurfaceDarkColor", theme.SurfaceDarkColor)
-        DXForge:TrackThemeOverride(DXForge.ActiveTheme, "PanelColor", theme.PanelColor)
     end
 end
 
@@ -3125,14 +2166,6 @@ function ColorPicker:SetColor(color, silent)
     self:applyThemeColor()
     if not silent then safeCall("ColorPicker:" .. self.Text, self.Callback, self.Value) end
     return self
-end
-
-function ColorPicker:SetValue(value, silent)
-    return self:SetColor(value, silent)
-end
-
-function ColorPicker:GetValue()
-    return normalizeColor(self.Value, self.Value)
 end
 
 function ColorPicker:updateColor(silent)
@@ -3153,10 +2186,9 @@ function ColorPicker:render(theme)
     Render.text({b[1] + 1, b[2] + 9}, theme.FontColor, Render.trimText(self.Text, b[3] - 84))
 
     local sx, sy, sw, sh = b[1] + b[3] - 74, b[2] + 5, 36, 22
-    local pickerRadius = DXForge.Design.ControlRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(sx - 1, sy - 1, sw + 2, sh + 2, self.Open and theme.AccentColor or theme.OutlineColor, pickerRadius)
-    Render.roundedFilled(sx, sy, sw, sh, {0, 0, 0}, math.max(0, pickerRadius - 1))
-    Render.roundedFilled(sx + 1, sy + 1, sw - 2, sh - 2, self.Value, math.max(0, pickerRadius - 2))
+    Render.filled({sx - 1, sy - 1}, {sx + sw + 1, sy + sh + 1}, self.Open and theme.AccentColor or theme.OutlineColor)
+    Render.filled({sx, sy}, {sx + sw, sy + sh}, {0, 0, 0})
+    Render.filled({sx, sy}, {sx + sw, sy + sh}, self.Value)
     Render.filled({sx + 2, sy + 2}, {sx + sw - 2, sy + 3}, {255, 255, 255})
     Render.text({sx + sw + 8, sy + 2}, theme.TextMutedColor, "...")
 
@@ -3166,17 +2198,13 @@ function ColorPicker:render(theme)
     end
     Input:release(self.Id)
 
-    DXForge:UpdateComponentAnim(self, {Hover = self.Hovered, Open = self.Open, Active = self.Open}, {Hover = 16, Open = 18, Active = 18})
-    local hover = getAnim(self, "Hover")
-    local open = getAnim(self, "Open")
-    local active = getAnim(self, "Active")
-    Render.roundedOutline(sx - 1, sy - 1, sw + 2, sh + 2, animatedColor(self.Open and theme.AccentColor or theme.OutlineColor, theme.GlowColor, hover * 0.22 + active * 0.28), pickerRadius, 1)
+    local open = DXForge:Animate(self.Id .. ":open", self.Open and 1 or 0, 18)
     if open > 0.02 then
         local px, py = b[1], b[2] + 33
         local pw, ph = b[3], (self.WithAlpha and 128 or 110) * open
-        local popupRadius = DXForge.Design.PopupRadius or DXForge.Design.ControlRadius or 0
-        Render.roundedFilled(px + 4, py + 5, pw, ph, {0, 0, 0}, popupRadius)
-        Render.roundedFrame(px, py, pw, ph, {7, 8, 12}, animatedColor(theme.OutlineColor, theme.AccentColor, active * 0.42), popupRadius, 1)
+        Render.filled({px + 4, py + 5}, {px + pw + 4, py + ph + 5}, {0, 0, 0})
+        Render.filled({px, py}, {px + pw, py + ph}, theme.OutlineColor)
+        Render.filled({px + 1, py + 1}, {px + pw - 1, py + ph - 1}, {7, 8, 12})
         Render.filled({px + 2, py + 2}, {px + pw - 2, py + 3}, theme.AccentColor)
         Render.filled({px + 2, py + 4}, {px + pw - 2, py + 20}, blend(theme.PanelColor, {28, 30, 39}, 0.55))
 
@@ -3268,7 +2296,6 @@ end
 
 function Groupbox:add(component)
     table.insert(self.Components, component)
-    DXForge:RegisterConfigItem(component)
     return component
 end
 
@@ -3436,11 +2463,11 @@ function Groupbox:render(theme, x, y, w)
     if not self.Visible then return 0 end
     local h = self:measure(w)
     self.Bounds = {x, y, w, h}
-    local radius = DXForge.Design.GroupboxRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x + 5, y + 6, w, h, theme.ShadowColor, radius)
-    Render.roundedFrame(x, y, w, h, theme.SurfaceDarkColor or {7, 8, 12}, theme.BorderStrongColor or theme.OutlineColor, radius, 1)
-    Render.roundedFilled(x + 2, y + 2, w - 4, 32, theme.HeaderDarkColor or theme.PanelColor, math.max(0, radius - 2))
-    Render.roundedFilled(x + 2, y + 35, w - 4, h - 37, theme.SurfaceColor or theme.BackgroundColor, math.max(0, radius - 2))
+    Render.filled({x + 5, y + 6}, {x + w + 5, y + h + 6}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+    Render.filled({x + 2, y + 2}, {x + w - 2, y + 34}, theme.HeaderDarkColor or theme.PanelColor)
+    Render.filled({x + 2, y + 35}, {x + w - 2, y + h - 2}, theme.SurfaceColor or theme.BackgroundColor)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
     Render.filled({x + 3, y + 4}, {x + 88, y + 5}, theme.GlowColor)
     Render.filled({x + 13, y + 12}, {x + 18, y + 23}, theme.AccentColor)
@@ -3593,7 +2620,6 @@ function Window:new(config)
 
     local object = setmetatable({
         Title = config.Title or "DXForge Window",
-        ConfigId = config.ConfigId and tostring(config.ConfigId) or nil,
         Position = position,
         Size = {math.max(minSize[1], size[1]), math.max(minSize[2], size[2])},
         MinSize = minSize,
@@ -3629,8 +2655,6 @@ function Window:new(config)
         object.Visible = false
     end
 
-    DXForge:RegisterWindow(object)
-
     return object
 end
 
@@ -3648,7 +2672,6 @@ function Window:AddTab(name)
     local tab = Tab:new(self, name)
     table.insert(self.Tabs, tab)
     if not self.ActiveTab then self.ActiveTab = tab end
-    DXForge:RegisterTab(tab)
     return tab
 end
 
@@ -4023,29 +3046,28 @@ function DXForge:renderNotifications(theme)
             elseif notification.Type == "Warning" then color = theme.WarningColor
             elseif notification.Type == "Error" then color = theme.ErrorColor end
 
-            local radius = DXForge.Design.NotificationRadius or DXForge.Design.PopupRadius or DXForge.Design.Radius or 0
-            Render.roundedFilled(x + 6, y + 8, width, height, theme.ShadowColor, radius)
-            Render.roundedFrame(x, y, width, height, theme.SurfaceDarkColor or {7, 8, 12}, theme.BorderStrongColor or theme.OutlineColor, radius, 1)
-            Render.roundedFilled(x + 2, y + 2, width - 4, 21, blend(theme.HeaderColor or theme.PanelColor, {34, 36, 46}, 0.5), math.max(0, radius - 2))
+            Render.filled({x + 6, y + 8}, {x + width + 6, y + height + 8}, theme.ShadowColor)
+            Render.filled({x, y}, {x + width, y + height}, theme.BorderStrongColor or theme.OutlineColor)
+            Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+            Render.filled({x + 2, y + 2}, {x + width - 2, y + 23}, blend(theme.HeaderColor or theme.PanelColor, {34, 36, 46}, 0.5))
             Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, color)
-            Render.roundedFilled(x + 1, y + 1, 5, height - 2, color, math.max(0, radius - 2))
+            Render.filled({x + 1, y + 1}, {x + 6, y + height - 1}, color)
             Render.filled({x + 12, y + 11}, {x + 17, y + 16}, color)
             if notification.ManualClose then
                 local closeId = notification.Id .. ":close"
                 local closeX, closeY = x + width - 25, y + 7
                 local closeHover = Input:hover(closeX, closeY, 16, 16)
-                local closeHoverAnim = self:Animate(closeId .. ":hover", closeHover and 1 or 0, 18)
                 if Input:clicked(closeId, closeX, closeY, 16, 16) then
                     notification.Closed = true
                 end
                 Input:release(closeId)
-                Render.roundedFilled(closeX, closeY, 16, 16, animatedColor(theme.SurfaceDarkColor, theme.HoverColor, closeHoverAnim), 4)
-                Render.line({closeX + 5, closeY + 5}, {closeX + 11, closeY + 11}, animatedColor(theme.TextMutedColor, color, closeHoverAnim))
-                Render.line({closeX + 11, closeY + 5}, {closeX + 5, closeY + 11}, animatedColor(theme.TextMutedColor, color, closeHoverAnim))
-                Render.roundedFilled(x + 6, y + height - 4, width - 14, 2, color, 1)
+                Render.filled({closeX, closeY}, {closeX + 16, closeY + 16}, closeHover and theme.HoverColor or theme.SurfaceDarkColor)
+                Render.line({closeX + 5, closeY + 5}, {closeX + 11, closeY + 11}, closeHover and color or theme.TextMutedColor)
+                Render.line({closeX + 11, closeY + 5}, {closeX + 5, closeY + 11}, closeHover and color or theme.TextMutedColor)
+                Render.filled({x + 6, y + height - 4}, {x + width - 8, y + height - 2}, color)
             else
                 local progress = clamp(age / notification.Duration, 0, 1)
-                Render.roundedFilled(x + 6, y + height - 4, (width - 8) * (1 - progress), 2, color, 1)
+                Render.filled({x + 6, y + height - 4}, {x + 6 + (width - 8) * (1 - progress), y + height - 2}, color)
             end
 
             for index, line in ipairs(lines) do
@@ -4060,196 +3082,30 @@ end
 
 --// Tooltips ------------------------------------------------------------------
 
-local function normalizeTooltipKeybind(keybind)
-    if keybind == nil then return nil end
-    keybind = tostring(keybind)
-    if keybind == "" or keybind == "[None]" then return nil end
-    return keybind
-end
-
-local function wrapTooltipLine(line, maxWidth)
-    line = tostring(line or "")
-    if line == "" then return {""}, 0 end
-    if Render.textWidth(line) <= maxWidth then
-        return {line}, Render.textWidth(line)
-    end
-
-    local out = {}
-    local widest = 0
-    local current = ""
-    for word in string.gmatch(line, "%S+") do
-        local candidate = current == "" and word or (current .. " " .. word)
-        if current ~= "" and Render.textWidth(candidate) > maxWidth then
-            table.insert(out, current)
-            widest = math.max(widest, Render.textWidth(current))
-            current = word
-        else
-            current = candidate
-        end
-
-        while current ~= "" and Render.textWidth(current) > maxWidth do
-            local slice = current
-            while #slice > 1 and Render.textWidth(slice) > maxWidth do
-                slice = string.sub(slice, 1, #slice - 1)
-            end
-            table.insert(out, slice)
-            widest = math.max(widest, Render.textWidth(slice))
-            current = string.sub(current, #slice + 1)
-            current = string.gsub(current, "^%s+", "")
-        end
-    end
-
-    if current ~= "" then
-        table.insert(out, current)
-        widest = math.max(widest, Render.textWidth(current))
-    end
-
-    if #out == 0 then
-        out[1] = ""
-    end
-    return out, widest
-end
-
-function DXForge:GetTooltipLayout(text, keybind, maxWidth)
-    local cache = self.Runtime.TooltipLayoutCache or {}
-    self.Runtime.TooltipLayoutCache = cache
-    keybind = normalizeTooltipKeybind(keybind)
-    maxWidth = math.max(120, math.floor(tonumber(maxWidth) or self.Config.TooltipMaxWidth or 260))
-    local cacheKey = tostring(text or "") .. "\0" .. tostring(keybind or "") .. "\0" .. tostring(maxWidth)
-    local cached = cache[cacheKey]
-    if cached then return cached end
-
-    local lines = {}
-    local textWidth = 0
-    for _, rawLine in ipairs(splitLines(text or "")) do
-        local wrapped, widest = wrapTooltipLine(rawLine, maxWidth)
-        textWidth = math.max(textWidth, widest)
-        for _, wrappedLine in ipairs(wrapped) do
-            table.insert(lines, wrappedLine)
-        end
-    end
-    if #lines == 0 then
-        lines[1] = ""
-    end
-
-    local pillWidth = keybind and (Render.textWidth(keybind) + 14) or 0
-    local layout = {
-        Lines = lines,
-        TextWidth = textWidth,
-        PillText = keybind,
-        PillWidth = pillWidth
-    }
-    cache[cacheKey] = layout
-    return layout
-end
-
-function DXForge:SetTooltip(ownerId, tooltip, bounds, extra)
-    if tooltip == nil then return self end
-
-    local data
-    if type(tooltip) == "table" then
-        data = {
-            Text = tostring(tooltip.Text or tooltip[1] or ""),
-            Keybind = normalizeTooltipKeybind(tooltip.Keybind),
-            MaxWidth = tonumber(tooltip.MaxWidth)
-        }
-    else
-        data = {
-            Text = tostring(tooltip),
-            Keybind = nil,
-            MaxWidth = nil
-        }
-    end
-
-    if type(extra) == "table" and not data.Keybind then
-        data.Keybind = normalizeTooltipKeybind(extra.Keybind)
-    end
-    data.OwnerId = tostring(ownerId or "tooltip")
-    data.Bounds = bounds
-
-    local runtime = self.Runtime
-    local sameOwner = runtime.TooltipOwner == data.OwnerId
-    if sameOwner then
-        data.Since = runtime.TooltipSince or os.clock()
-    else
-        data.Since = os.clock()
-        runtime.TooltipPosition = nil
-        runtime.TooltipOwner = data.OwnerId
-        runtime.TooltipSince = data.Since
-        self.Animations["DXForge:tooltip:open"] = 0
-    end
-
-    runtime.TooltipOwner = data.OwnerId
-    runtime.TooltipSince = data.Since
-    runtime.HoveredTooltip = data
-    return self
-end
-
 function DXForge:renderTooltip(theme)
     local tooltip = self.Runtime.HoveredTooltip
-    local visible = tooltip and tooltip.Text and tooltip.Text ~= "" and (os.clock() - tooltip.Since >= (self.Config.TooltipDelay or 0.25))
-    local open = self:Animate("DXForge:tooltip:open", visible and 1 or 0, self.Config.TooltipFadeSpeed or 14)
-    if not tooltip or not tooltip.Text or tooltip.Text == "" then
-        if open <= 0.01 then
-            self.Runtime.TooltipOwner = nil
-            self.Runtime.TooltipSince = nil
-            self.Runtime.TooltipPosition = nil
-        end
-        return
-    end
-    if open <= 0.01 then return end
+    if not tooltip or not tooltip.Text then return end
+    if os.clock() - tooltip.Since < self.Config.TooltipDelay then return end
 
-    local padding = math.max(4, math.floor(tonumber(self.Config.TooltipPadding) or 8))
-    local maxWidth = math.max(120, math.floor(tonumber(tooltip.MaxWidth) or tonumber(self.Config.TooltipMaxWidth) or 260))
-    local layout = self:GetTooltipLayout(tooltip.Text, tooltip.Keybind, maxWidth - padding * 2)
-    local lineHeight = self.Config.FontHeight or 16
-    local textHeight = #layout.Lines * lineHeight
-    local badgeGap = layout.PillText and 8 or 0
-    local badgeHeight = layout.PillText and 18 or 0
-    local width = math.max(layout.TextWidth, layout.PillWidth) + padding * 2
-    local height = padding * 2 + textHeight + badgeGap + badgeHeight
+    local lines = splitLines(tooltip.Text)
+    local width = 0
+    for _, line in ipairs(lines) do
+        width = math.max(width, Render.textWidth(line))
+    end
+    width = width + 20
+    local height = 12 + #lines * 16
     local sw, sh = Render.screen()
-    local offset = self.Config.TooltipOffset or {14, 16}
-    local followStrength = clamp(tonumber(self.Config.TooltipFollowStrength) or 0.18, 0.01, 1)
-    local targetX = Input.Mouse.x + (tonumber(offset[1]) or 14)
-    local targetY = Input.Mouse.y + (tonumber(offset[2]) or 16)
-    targetX = clamp(targetX, 4, sw - width - 4)
-    targetY = clamp(targetY, 4, sh - height - 4)
+    local x = clamp(Input.Mouse.x + 14, 4, sw - width - 4)
+    local y = clamp(Input.Mouse.y + 16, 4, sh - height - 4)
 
-    local pos = self.Runtime.TooltipPosition
-    if not pos then
-        pos = {targetX, targetY}
-        self.Runtime.TooltipPosition = pos
-    else
-        pos[1] = lerp(pos[1], targetX, followStrength)
-        pos[2] = lerp(pos[2], targetY, followStrength)
+    Render.filled({x + 4, y + 5}, {x + width + 4, y + height + 5}, theme.ShadowColor)
+    Render.filled({x, y}, {x + width, y + height}, theme.AccentColor)
+    Render.filled({x + 1, y + 1}, {x + width - 1, y + height - 1}, theme.SurfaceDarkColor or {7, 8, 12})
+    Render.filled({x + 2, y + 4}, {x + 4, y + height - 3}, theme.AccentColor)
+    Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, theme.GlowColor)
+    for index, line in ipairs(lines) do
+        Render.text({x + 11, y + 6 + (index - 1) * 16}, theme.FontColor, line)
     end
-
-    local x = clamp(pos[1] + (1 - open) * 4, 4, sw - width - 4)
-    local y = clamp(pos[2] + (1 - open) * 2, 4, sh - height - 4)
-
-    local radius = DXForge.Design.TooltipRadius or DXForge.Design.PopupRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x + 4, y + 5, width, height, animatedColor({0, 0, 0}, theme.ShadowColor, open), radius)
-    Render.roundedFrame(x, y, width, height, animatedColor(theme.SurfaceColor or theme.PanelColor, theme.PanelColor, (1 - open) * 0.18), animatedColor(theme.BorderStrongColor or theme.OutlineColor, theme.AccentColor, open * 0.45), radius, 1)
-    Render.roundedFilled(x + 2, y + 4, 2, height - 8, animatedColor(theme.AccentDimColor or theme.AccentColor, theme.AccentColor, open), 1)
-    Render.filled({x + 2, y + 2}, {x + width - 2, y + 3}, animatedColor(theme.OutlineColor, theme.GlowColor, open))
-
-    local textX = x + padding + 3
-    local textY = y + padding
-    for index, line in ipairs(layout.Lines) do
-        Render.text({textX, textY + (index - 1) * lineHeight}, animatedColor(theme.TextMutedColor, theme.FontColor, open), line)
-    end
-
-    if layout.PillText then
-        local pillY = textY + textHeight + badgeGap
-        local pillX = x + padding + 3
-        Render.roundedFrame(pillX, pillY, layout.PillWidth, badgeHeight, animatedColor(theme.SurfaceDarkColor or theme.PanelColor, theme.SurfaceColor or theme.PanelColor, 0.25), animatedColor(theme.OutlineColor, theme.AccentColor, open * 0.6), math.max(3, radius - 1), 1)
-        Render.text({pillX + 7, pillY + 2}, animatedColor(theme.TextMutedColor, theme.FontColor, open * 0.35), layout.PillText)
-    end
-end
-
-function DXForge:RenderTooltip()
-    return self:renderTooltip(self:GetTheme())
 end
 
 --// Watermark -----------------------------------------------------------------
@@ -4365,9 +3221,9 @@ function DXForge:renderWatermark(theme)
     local w = math.max(96, math.ceil(textWidth + iconW + paddingX + textPadRight + 18))
     local h = 30
 
-    local radius = DXForge.Design.PopupRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x + 4, y + 5, w, h, theme.ShadowColor, radius)
-    Render.roundedFrame(x, y, w, h, theme.SurfaceDarkColor or theme.PanelColor, theme.BorderStrongColor or theme.OutlineColor, radius, 1)
+    Render.filled({x + 4, y + 5}, {x + w + 4, y + h + 5}, theme.ShadowColor)
+    Render.filled({x, y}, {x + w, y + h}, theme.BorderStrongColor or theme.OutlineColor)
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, theme.SurfaceDarkColor or theme.PanelColor)
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, theme.AccentColor)
     Render.filled({x + 2, y + h - 3}, {x + math.min(w - 2, 72), y + h - 2}, theme.GlowColor)
     Render.filled({x + paddingX, y + 10}, {x + paddingX + 6, y + 16}, theme.AccentColor)
@@ -4388,10 +3244,9 @@ function DXForge:renderLogoFallback(x, y, w, h, theme, status)
     local centerY = y + (h / 2)
     local pulse = self:Pulse(5)
 
-    local radius = DXForge.Design.PopupRadius or DXForge.Design.Radius or 0
-    Render.roundedFilled(x, y, w, h, {7, 8, 12}, radius)
-    Render.roundedFilled(x + 1, y + 1, w - 2, h - 2, {13, 14, 20}, math.max(0, radius - 1))
-    Render.roundedOutline(x, y, w, h, loading and theme.OutlineColor or blend(theme.AccentColor, theme.GlowColor, pulse), radius, 1)
+    Render.filled({x, y}, {x + w, y + h}, {7, 8, 12})
+    Render.filled({x + 1, y + 1}, {x + w - 1, y + h - 1}, {13, 14, 20})
+    Render.box({x, y}, {x + w, y + h}, loading and theme.OutlineColor or blend(theme.AccentColor, theme.GlowColor, pulse))
     Render.filled({x + 2, y + 2}, {x + w - 2, y + 3}, loading and theme.OutlineColor or theme.AccentColor)
 
     if Render.embeddedLogo(x + 5, y + 5, w - 10, h - 10, theme) then
@@ -4401,8 +3256,8 @@ function DXForge:renderLogoFallback(x, y, w, h, theme, status)
     if not loading then
         local iconX = centerX - (textWidth / 2) - 32
         local iconY = centerY - 11
-        Render.roundedFilled(iconX, iconY, 22, 22, {0, 0, 0}, 6)
-        Render.roundedOutline(iconX, iconY, 22, 22, theme.AccentColor, 6, 1)
+        Render.filled({iconX, iconY}, {iconX + 22, iconY + 22}, {0, 0, 0})
+        Render.box({iconX, iconY}, {iconX + 22, iconY + 22}, theme.AccentColor)
         Render.line({iconX + 5, iconY + 6}, {iconX + 17, iconY + 16}, theme.GlowColor)
         Render.line({iconX + 17, iconY + 6}, {iconX + 5, iconY + 16}, theme.AccentColor)
         Render.text({centerX - (textWidth / 2), centerY - 8}, theme.FontColor, text)
@@ -4430,9 +3285,9 @@ function DXForge:renderStartup(theme)
     local pulse = self:Pulse(4)
     local sweep = ((age * 115) % (bw + 80)) - 40
 
-    Render.roundedFilled(x + 6, y + 8, bw, bh, {0, 0, 0}, DXForge.Design.WindowRadius or DXForge.Design.Radius or 0)
+    Render.filled({x + 6, y + 8}, {x + bw + 6, y + bh + 8}, {0, 0, 0})
     Render.panel(x, y, bw, bh, theme, true)
-    Render.roundedOutline(x - 1, y - 1, bw + 2, bh + 2, blend(theme.OutlineColor, theme.GlowColor, pulse), (DXForge.Design.WindowRadius or DXForge.Design.Radius or 0) + 1, 1)
+    Render.box({x - 1, y - 1}, {x + bw + 1, y + bh + 1}, blend(theme.OutlineColor, theme.GlowColor, pulse))
 
     Render.line({x + sweep, y + 3}, {x + sweep + 46, y + 3}, theme.GlowColor)
     Render.line({x + bw - sweep, y + bh - 4}, {x + bw - sweep - 46, y + bh - 4}, theme.AccentColor)
@@ -4505,17 +3360,6 @@ function DXForge:Render()
         return self
     end
 
-    if self.AutoSave and self.AutoSave.File then
-        local now = os.clock()
-        if now - (self.AutoSave.LastAt or 0) >= (self.AutoSave.Interval or 2) then
-            self.AutoSave.LastAt = now
-            local ok, err = self:SaveConfig(self.AutoSave.File, {SilentNotify = true})
-            if not ok then
-                debugConfig("Autosave failed: " .. tostring(err))
-            end
-        end
-    end
-
     self:renderWatermark(theme)
     self:renderFOVCircle(theme)
     self:sortWindows()
@@ -4551,9 +3395,6 @@ function DXForge:Destroy()
     self.WindowOrder = {}
     self.Notifications = {}
     self.Animations = {}
-    self.ConfigItems = {}
-    self.WindowsByConfigKey = {}
-    self.AutoSave = nil
     if self.FOVCircle then self.FOVCircle.Visible = false end
     return self
 end
