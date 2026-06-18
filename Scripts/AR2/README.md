@@ -1,58 +1,35 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:FF4444,100:14151C&text=AR2+DOMINION&fontColor=F2EEFF&fontSize=38&fontAlignY=38&animation=fadeIn&desc=Apocalypse+Rising+2+%E2%80%94+DX9WARE+Script&descAlignY=64&descSize=14" alt="AR2 DOMINION animated header" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:FF4747,100:161821&text=AR2%20DOMINION&fontColor=F3EEFF&fontSize=38&fontAlignY=38&animation=fadeIn&desc=Apocalypse%20Rising%202%20DX9WARE%20Script&descAlignY=64&descSize=14" alt="AR2 DOMINION header" width="100%" />
 </p>
 
 <p align="center">
-  <a href="https://git.io/typing-svg">
-    <img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=20&duration=2600&pause=700&color=FF4444&center=true&vCenter=true&width=820&lines=Full-spectrum+ESP+for+players%2C+zombies%2C+vehicles+%26+loot;Smooth+aimbot+with+FOV%2C+sticky+aim+%26+11+aim+parts;Powered+by+DXForge+%E2%80%94+premium+DX9+UI" alt="Animated AR2 DOMINION description" />
-  </a>
+  <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=FF4747" alt="Lua DX9" />
+  <img src="https://img.shields.io/badge/script-AR2%20DOMINION-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Script" />
+  <img src="https://img.shields.io/badge/game-Apocalypse%20Rising%202-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Game" />
+  <img src="https://img.shields.io/badge/UI-DXForge%201.1.3-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="DXForge UI" />
+  <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Author" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=FF4444" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-5.0.0-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Version" />
-  <img src="https://img.shields.io/badge/game-Apocalypse%20Rising%202-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Game" />
-  <img src="https://img.shields.io/badge/UI-DXForge%20v1.0.19-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="DXForge" />
-  <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF4444" alt="Author" />
-</p>
-
-<p align="center">
-  <sub>Full-spectrum ESP. Smooth aimbot. Premium DXForge UI.</sub>
+  <sub>Full-spectrum AR2 ESP, dual aimbot flow, polished overlays, and the current DXForge UI feature set.</sub>
 </p>
 
 ---
 
 ## Overview
 
-AR2 DOMINION is a full-featured DX9WARE script for Apocalypse Rising 2. It covers player ESP, zombie ESP, vehicle ESP, loot container ESP, searchable loot ESP, world utility ESP, and dead body ESP — paired with a dual-target aimbot, a four-style crosshair, live overlay counters, and a DXForge-powered UI.
+`AR2_DOMINION.lua` is the Apocalypse Rising 2-focused DX9WARE script in this repository. It combines wide ESP coverage, separate player and zombie aimbot handling, configurable overlays, and a DXForge-powered premium menu with current-generation UI features like curved edges, animated controls, better tooltips, and built-in config persistence.
 
-## Feature Grid
+## Key Systems
 
-| ESP | Aimbot | Visuals & Overlays |
-| --- | --- | --- |
-| Player Box, Name, Distance | Player smooth aimbot | 4-style crosshair |
-| Player Health Bar | Player FOV circle | Watermark |
-| Player Tracelines & Skeleton | Sticky aim | FPS counter |
-| Player Snap Lines | 11 selectable aim parts | Stats overlay |
-| Player Nearest Indicator | First / Third Person mode | Session timer |
-| Zombie Box, Name, Distance | Zombie smooth aimbot | Location tag |
-| Zombie Type Classification | Independent zombie FOV | Show Console toggle |
-| Zombie Health Bar & Skeleton | FOV source: Auto / Player / Zombie | DXForge UI |
-| Zombie Nearest Indicator | — | — |
-| Zombie Proximity Alert | — | — |
-| Vehicle ESP (31 types, 5 categories) | — | — |
-| Loot Container ESP | — | — |
-
-## Components
-
-```text
-Player ESP          Zombie ESP          Vehicle ESP
-Loot Container ESP  Searchable Loot ESP World Utility ESP
-Dead Body ESP       Zombie Proximity Alert
-Player Aimbot       Zombie Aimbot       FOV Circle
-Crosshair           Watermark           Stats Overlay
-FPS Counter         Session Timer       Location Tag
-```
+| Category | Included |
+| --- | --- |
+| Player ESP | Box, name, distance, health, tracelines, skeleton, snap lines, nearest indicator |
+| Zombie ESP | Box, name, distance, health, tracelines, skeleton, type labels, nearest indicator, proximity alerts |
+| World ESP | Vehicles, loot containers, searchable loot, world utility, dead bodies |
+| Aimbot | Player aimbot, zombie aimbot, FOV controls, smoothness, sensitivity, aim-part selection, sticky aim |
+| Overlays | Crosshair, watermark, FPS counter, session timer, stats overlay, location tag |
+| UI | DXForge 1.1.3 with curved edges, control animations, upgraded tooltips, config save/load, autosave |
 
 ## Install
 
@@ -60,26 +37,35 @@ FPS Counter         Session Timer       Location Tag
 loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scripts/AR2/AR2_DOMINION.lua"))()
 ```
 
----
+## Suggested Runtime Flow
+
+```lua
+local DXForge = _G.DXForge or dofile("DXForge.lua")
+
+DXForge:SetConfigFolder("DXForge")
+DXForge:LoadConfig("AR2_DOMINION")
+DXForge:EnableAutoSave({
+    File = "AR2_DOMINION.json",
+    Interval = 2
+})
+```
 
 ## UI Layout
 
-| Tab | Groupbox | Controls |
+| Tab | Groupbox | Main controls |
 | --- | --- | --- |
-| ESP | Player ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Snap Lines, Nearest Indicator, Max Distance, Box / Name / Trace / Nearest Color |
-| ESP | Zombie ESP | Enable, Box, Name Tags, Distance, Health Bar, Tracelines, Skeleton, Zombie Type Label, Nearest Indicator, Max Distance, Box / Name / Nearest Color |
-| ESP | Vehicle ESP | Enable, Box, Name & Category, Distance, Tracelines, Nearest Indicator, Max Distance, Name / Nearest Color |
-| ESP | Loot ESP | Enable, Box, Name, Distance, Tracelines, Max Distance, Box / Name Color |
-| ESP | Dead Body ESP | Enable, Box + X Marker, Name, Distance, Tracelines, Show Equipment, Show Dead Zombies, Show Dead Players, Max Distance, Box / Name Color |
-| ESP | Alerts | Proximity Alert, Alert Distance |
-| Aimbot | Player Aimbot | Enable, Sticky Aim, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
-| Aimbot | Zombie Aimbot | Enable, FOV, Smooth, Sensitivity, Aim Part, Aim Mode |
-| Aimbot | FOV Circle | Show FOV Circle, FOV Source, FOV Color |
-| Visuals | Crosshair | Enable, Style, Size, Gap, Center Dot, Color |
-| Visuals | Overlays | Watermark, FPS Counter, Stats Overlay, Show Location |
-| Settings | General | Show Console, Script Info, Reset All Settings |
-
----
+| ESP | Player ESP | Enable, box, names, distance, health, tracelines, skeleton, snap lines, nearest indicator, max distance, color controls |
+| ESP | Zombie ESP | Enable, box, names, distance, health, tracelines, skeleton, zombie type label, nearest indicator, max distance, color controls |
+| ESP | Vehicle ESP | Enable, box, names, category label, distance, tracelines, nearest indicator, max distance |
+| ESP | Loot ESP | Enable, box, names, distance, tracelines, max distance, color controls |
+| ESP | Dead Body ESP | Enable, box marker, names, distance, tracelines, equipment visibility, player/zombie corpse filters |
+| ESP | Alerts | Zombie proximity alert, alert distance |
+| Aimbot | Player Aimbot | Enable, sticky aim, FOV, smooth, sensitivity, aim part, aim mode |
+| Aimbot | Zombie Aimbot | Enable, FOV, smooth, sensitivity, aim part, aim mode |
+| Aimbot | FOV Circle | Show FOV, source mode, color |
+| Visuals | Crosshair | Enable, style, size, gap, center dot, color |
+| Visuals | Overlays | Watermark, FPS counter, stats overlay, location display |
+| Settings | General | Console, script info, reset behavior, config-facing settings |
 
 ## Vehicle Categories
 
@@ -93,19 +79,19 @@ loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scrip
 
 ## Searchable Loot Categories
 
-| Category |
-| --- |
-| Medical |
-| Weapon |
-| Food |
-| Vehicle |
-| Industrial |
-| Utility |
-| Civilian |
+```text
+Medical
+Weapon
+Food
+Vehicle
+Industrial
+Utility
+Civilian
+```
 
-## Zombie Types
+## Zombie Type Groups
 
-| Type | Classification Keywords |
+| Type | Keywords |
 | --- | --- |
 | Military | Military, Soldier, Boot Camp, Drill, SWAT, SpecOps, Operator |
 | Police | Police, Security, Prison |
@@ -113,35 +99,48 @@ loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scrip
 | Smuggler | Smuggler, Miner, Mobster |
 | Civilian | Civilian, Resident, Tourist, Student, Hobo, Farmer, Hunter, Camper |
 
----
-
 ## Aimbot Reference
 
-| Setting | Range | Default (Player) | Default (Zombie) |
+| Setting | Range | Player default | Zombie default |
 | --- | --- | --- | --- |
-| FOV | 10 – 1000 | 350 | 400 |
-| Smooth | 1 – 20 | 1.5 | 1.2 |
-| Sensitivity | 0.5 – 10 | 2.0 | 2.5 |
-| Aim Part | Head … RightFoot (11) | Head | Head |
-| Aim Mode | First Person / Third Person | First Person | First Person |
-| Sticky Aim | Toggle | Off | — |
+| FOV | `10 - 1000` | `350` | `400` |
+| Smooth | `1 - 20` | `1.5` | `1.2` |
+| Sensitivity | `0.5 - 10` | `2.0` | `2.5` |
+| Aim Part | `Head` to `RightFoot` | `Head` | `Head` |
+| Aim Mode | `First Person / Third Person` | `First Person` | `First Person` |
+| Sticky Aim | Toggle | `Off` | `-` |
 
 ## Crosshair Styles
 
-```text
-1  Cross          — four-line crosshair
-2  Dot            — single center dot
-3  Circle         — full circle
-4  Cross+Circle   — four-line crosshair with circle
-```
+| Style | Meaning |
+| --- | --- |
+| `1` | Cross |
+| `2` | Dot |
+| `3` | Circle |
+| `4` | Cross + Circle |
 
----
+## Visual Standard
+
+This README now follows the same presentation level as the root DXForge docs:
+
+- same badge style
+- same section rhythm
+- same dark-tech visual direction
+- same current DXForge version reference
+
+## Related Docs
+
+| File | Purpose |
+| --- | --- |
+| [../../README.md](../../README.md) | Main DXForge overview |
+| [../../docs/README.md](../../docs/README.md) | Documentation hub |
+| [../BRM5/README.md](../BRM5/README.md) | BRM5 sister script |
 
 ## Credits
 
 Created by **PixelGG**.  
-UI powered by [DXForge](../../README.md) by **PixelGG**.
+UI powered by **DXForge 1.1.3**.
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=90&section=footer&color=0:14151C,55:FF4444,100:090A0F&animation=fadeIn" alt="AR2 DOMINION animated footer" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=88&section=footer&color=0:161821,55:FF4747,100:090A0F&animation=fadeIn" alt="AR2 DOMINION footer" width="100%" />
 </p>

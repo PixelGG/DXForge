@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:14151C&text=Components&fontColor=F2EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Every%20control%20DXForge%20ships%20with&descAlignY=64&descSize=13" alt="Components" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=Components&fontColor=F3EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Every%20control%20DXForge%20ships%20with%20today&descAlignY=64&descSize=13" alt="Components" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -11,7 +11,7 @@ Box:AddLabel({Text = "Combat Settings"})
 Box:AddDivider("Main")
 ```
 
-Use labels for passive information and dividers for visual grouping.
+Use labels for passive information and dividers for structure.
 
 ## Button
 
@@ -25,11 +25,14 @@ Box:AddButton({
 })
 ```
 
+Buttons use the control animation system automatically for hover and press feedback.
+
 ## Toggle
 
 ```lua
 Box:AddToggle({
     Text = "Enable Feature",
+    ConfigId = "enable_feature",
     Default = false,
     Keybind = "[F]",
     Callback = function(value)
@@ -38,11 +41,19 @@ Box:AddToggle({
 })
 ```
 
+Notes:
+
+- curved toggle style is used when curved edges are enabled
+- rectangular fallback is used when curved edges are disabled
+- keybind-based toggling still works
+- value is config-persistent when config saving is used
+
 ## Slider
 
 ```lua
 Box:AddSlider({
     Text = "Speed",
+    ConfigId = "speed",
     Min = 0,
     Max = 100,
     Default = 50,
@@ -53,11 +64,14 @@ Box:AddSlider({
 })
 ```
 
+Sliders now use animated handles and preserve `Min`, `Max`, and `Step` behavior exactly.
+
 ## Dropdown
 
 ```lua
 Box:AddDropdown({
     Text = "Mode",
+    ConfigId = "mode",
     Values = {"Default", "Aggressive", "Silent"},
     Default = "Default",
     Callback = function(value)
@@ -66,13 +80,18 @@ Box:AddDropdown({
 })
 ```
 
-Long dropdowns show a slim draggable scrollbar. Dropdowns named like `Theme` or `Select Theme` switch registered DXForge themes automatically.
+Notes:
+
+- long dropdowns use a draggable popup scrollbar
+- open state is animated through the shared component animation system
+- dropdowns named like `Theme` or `Select Theme` can switch DXForge themes automatically
 
 ## MultiDropdown
 
 ```lua
 Box:AddMultiDropdown({
     Text = "Targets",
+    ConfigId = "targets",
     Values = {"Players", "NPCs", "Objects"},
     Default = {"Players"},
     Callback = function(values)
@@ -81,11 +100,14 @@ Box:AddMultiDropdown({
 })
 ```
 
+MultiDropdown selection tables are config-persistent and keep the same callback contract.
+
 ## Textbox
 
 ```lua
 Box:AddTextbox({
     Text = "Profile Name",
+    ConfigId = "profile_name",
     Placeholder = "Enter name...",
     Default = "",
     ClearButton = true,
@@ -95,13 +117,18 @@ Box:AddTextbox({
 })
 ```
 
-`ClearButton = true` shows an inline clear button whenever the textbox contains text.
+Notes:
+
+- clear button still works
+- focus state now has visual animation feedback
+- saved text can be restored through config loading
 
 ## Keybind
 
 ```lua
 Box:AddKeybind({
     Text = "Menu Key",
+    ConfigId = "menu_key",
     Default = "[INSERT]",
     Mode = "Toggle",
     Callback = function(key, state)
@@ -110,18 +137,19 @@ Box:AddKeybind({
 })
 ```
 
-Modes:
-
 | Mode | Behavior |
 | --- | --- |
-| `Toggle` | Pressing the key flips state. |
-| `Hold` | State is active while the key is held. |
+| `Toggle` | Pressing the key flips state |
+| `Hold` | State is active while the key is held |
+
+Keybind recording now has dedicated recording-state animation.
 
 ## ColorPicker
 
 ```lua
 Box:AddColorPicker({
     Text = "Accent Color",
+    ConfigId = "accent_color",
     Default = {180, 70, 255},
     Alpha = true,
     ApplyToTheme = true,
@@ -132,28 +160,45 @@ Box:AddColorPicker({
 })
 ```
 
-Use `Alpha = true` to show the alpha slider. Use `ApplyToTheme = true` to update the active theme `AccentColor` directly. For another theme token, pass `ThemeKey = "GlowColor"` or any registered color token. Color pickers named like `Primary Color` and `Accent Color` also infer `MainColor` and `AccentColor` automatically.
+Notes:
 
-```lua
-Box:AddColorPicker({
-    Text = "Primary Color",
-    Default = {12, 13, 18}
-})
-
-Box:AddColorPicker({
-    Text = "Accent Color",
-    Default = {184, 94, 255}
-})
-```
+- `Alpha = true` shows the alpha slider
+- `ApplyToTheme = true` updates the active theme directly
+- `ThemeKey = "GlowColor"` targets a specific token
+- runtime theme edits are now persisted by the config system
 
 ## Tooltips
 
-Most controls accept a `Tooltip` field:
+Simple tooltip:
 
 ```lua
 Box:AddToggle({
     Text = "Smart Mode",
-    Tooltip = "Explains what this setting does.",
-    Callback = function(value) end
+    Tooltip = "Explains what this setting does."
+})
+```
+
+Extended tooltip:
+
+```lua
+Box:AddSlider({
+    Text = "FOV",
+    Tooltip = {
+        Text = "Controls the field of view.\nHold SHIFT for precision.",
+        Keybind = "[SHIFT]",
+        MaxWidth = 280
+    }
+})
+```
+
+## Config IDs
+
+If you want stable config keys independent of visible text, use `ConfigId`:
+
+```lua
+Box:AddToggle({
+    Text = "Enable ESP",
+    ConfigId = "visuals_enable_esp",
+    Default = true
 })
 ```

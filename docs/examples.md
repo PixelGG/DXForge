@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:14151C&text=Examples&fontColor=F2EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Copy-ready%20DXForge%20layouts&descAlignY=64&descSize=13" alt="Examples" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=Examples&fontColor=F3EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Copy-ready%20DXForge%20layouts%20with%20modern%20features&descAlignY=64&descSize=13" alt="Examples" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -19,63 +19,83 @@ local Right = Main:AddGroupbox("Visuals", "right")
 
 Left:AddToggle({
     Text = "Enabled",
-    Default = true,
-    Callback = function(value) print(value) end
+    ConfigId = "enabled",
+    Default = true
 })
 
 Left:AddSlider({
     Text = "Strength",
+    ConfigId = "strength",
     Min = 0,
     Max = 100,
-    Default = 35,
-    Callback = function(value) print(value) end
+    Default = 35
 })
 
 Right:AddColorPicker({
     Text = "Accent",
-    Default = {178, 84, 255},
     ThemeKey = "AccentColor",
-    Callback = function(color) print(color[1], color[2], color[3]) end
+    Default = {178, 84, 255}
 })
 ```
 
-## Settings Tab
+## Config-Backed Menu
 
 ```lua
-local Settings = Window:AddTab("Settings")
-local Menu = Settings:AddGroupbox("Menu", "full")
+local DXForge = _G.DXForge or dofile("DXForge.lua")
 
-Menu:AddKeybind({
-    Text = "Menu Toggle",
-    Default = "[INSERT]",
-    Mode = "Toggle",
-    Callback = function(key, state)
-        print("Key:", key, "State:", state)
-    end
+DXForge:SetConfigFolder("DXForge")
+DXForge:LoadConfig("ExampleProfile")
+
+local Window = DXForge:CreateWindow({
+    Title = "Config Example",
+    Size = {620, 460},
+    ToggleKey = "[INSERT]"
 })
 
-Menu:AddDropdown({
-    Text = "Select Theme",
-    Values = DXForge:GetThemeNames(),
-    Default = "Dark"
+local Tab = Window:AddTab("Main")
+local Box = Tab:AddGroupbox("Settings", "left")
+
+Box:AddToggle({
+    Text = "Enable ESP",
+    ConfigId = "visuals_enable_esp",
+    Default = true
 })
 
-Menu:AddColorPicker({
-    Text = "Primary Color",
-    Default = {12, 13, 18}
+Box:AddDropdown({
+    Text = "Mode",
+    ConfigId = "combat_mode",
+    Values = {"Default", "Aggressive", "Silent"},
+    Default = "Default"
 })
 
-Menu:AddColorPicker({
-    Text = "Accent Color",
-    Default = {184, 94, 255}
+DXForge:EnableAutoSave({
+    File = "ExampleProfile.json",
+    Interval = 2
+})
+```
+
+## Theme And Tooltip Setup
+
+```lua
+DXForge:CreateTheme("Ocean", {
+    Base = "Dark",
+    AccentColor = {80, 180, 255},
+    GlowColor = {90, 210, 255}
 })
 
-DXForge:SetFOVCircle({
-    Visible = true,
-    Radius = 120,
-    Color = {184, 94, 255},
-    Thickness = 1,
-    FollowMouse = false
+DXForge:SetTheme("Ocean")
+DXForge:CurvedEdges(true)
+
+Box:AddSlider({
+    Text = "FOV",
+    Min = 40,
+    Max = 180,
+    Default = 90,
+    Tooltip = {
+        Text = "Controls the visible aim radius.\nHold SHIFT for precision adjustments.",
+        Keybind = "[SHIFT]",
+        MaxWidth = 280
+    }
 })
 ```
 
@@ -85,16 +105,16 @@ DXForge:SetFOVCircle({
 local Feedback = Main:AddGroupbox("Feedback", "full")
 
 Feedback:AddButton({
-    Text = "Success",
+    Text = "Save Config",
     Callback = function()
-        DXForge:Notify({Text = "Operation completed.", Type = "Success"})
+        DXForge:SaveConfig("ExampleProfile")
     end
 })
 
 Feedback:AddButton({
-    Text = "Warning",
+    Text = "Load Config",
     Callback = function()
-        DXForge:Notify({Text = "Check your settings.", Type = "Warning"})
+        DXForge:LoadConfig("ExampleProfile", {Callbacks = false})
     end
 })
 ```

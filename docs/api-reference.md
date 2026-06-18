@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:14151C&text=API%20Reference&fontColor=F2EEFF&fontSize=32&fontAlignY=38&animation=fadeIn&desc=Core%2C%20windows%2C%20tabs%2C%20groupboxes%20and%20controls&descAlignY=64&descSize=13" alt="API Reference" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=API%20Reference&fontColor=F3EEFF&fontSize=32&fontAlignY=38&animation=fadeIn&desc=Core%2C%20windows%2C%20tabs%2C%20controls%2C%20configs%20and%20tooltips&descAlignY=64&descSize=13" alt="API Reference" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -9,18 +9,27 @@
 | Method | Returns | Description |
 | --- | --- | --- |
 | `DXForge:CreateWindow(config)` | `Window` | Creates a new UI window. |
-| `DXForge:Render()` | `DXForge` | Updates input, renders startup, windows, notifications, watermark, and tooltips. |
-| `DXForge:Notify(config)` | `DXForge` | Adds a notification. |
-| `DXForge:CreateTheme(name, values)` | `DXForge` | Friendly custom theme creator with optional `Base` / `Extends`. |
-| `DXForge:RegisterTheme(name, values)` | `DXForge` | Registers a custom theme. |
-| `DXForge:UpdateTheme(name, values)` | `DXForge` | Patches an existing theme with partial tokens. |
+| `DXForge:Render()` | `DXForge` | Updates input, autosave, overlays, startup, windows, notifications, and tooltips. |
+| `DXForge:Notify(config)` | `DXForge` | Adds a notification card. |
+| `DXForge:CreateTheme(name, values)` | `DXForge` | Registers a custom theme with inheritance support. |
+| `DXForge:RegisterTheme(name, values)` | `DXForge` | Low-level theme registration helper. |
+| `DXForge:UpdateTheme(name, values)` | `DXForge` | Patches an existing theme. |
 | `DXForge:SetTheme(name)` | `DXForge` | Sets the active global theme. |
-| `DXForge:SetThemeColor(key, color)` | `DXForge` | Updates one color token on the active theme. |
+| `DXForge:SetThemeColor(key, color)` | `DXForge` | Updates one token on the active theme. |
 | `DXForge:GetThemeNames()` | `table` | Returns all registered theme names. |
+| `DXForge:CurvedEdges(value)` | `DXForge` or `boolean` | Enables/disables curved rendering, or returns the current state when `value == nil`. |
+| `DXForge:SetCurvedEdges(value)` | `DXForge` or `boolean` | Internal/alternate curved-edge setter. |
 | `DXForge:SetWatermark(config)` | `DXForge` | Configures the watermark. |
 | `DXForge:SetFOVCircle(config)` | `DXForge` | Configures the optional FOV circle overlay. |
+| `DXForge:SetConfigFolder(folder)` | `DXForge` | Sets the config folder and tries to create it when supported. |
+| `DXForge:SaveConfig(name)` | `boolean` | Saves config data to a JSON-style file. |
+| `DXForge:LoadConfig(name, options)` | `boolean` | Loads config data and applies it safely. |
+| `DXForge:DeleteConfig(name)` | `boolean` | Deletes a config file. |
+| `DXForge:GetConfigList()` | `table` | Returns available config filenames. |
+| `DXForge:EnableAutoSave(options)` | `DXForge` | Enables timed autosave. |
+| `DXForge:DisableAutoSave()` | `DXForge` | Disables autosave. |
 | `DXForge:SetDebug(value)` | `DXForge` | Enables or disables debug warnings. |
-| `DXForge:Destroy()` | `DXForge` | Clears windows, notifications, and animations. |
+| `DXForge:Destroy()` | `DXForge` | Clears windows, notifications, animations, and config registries. |
 
 ## CreateWindow Config
 
@@ -32,9 +41,11 @@
 | `ToggleKey` | `string` | `nil` |
 | `Resizable` | `boolean` | `false` |
 | `Footer` | `boolean` | `true` |
-| `Theme` | `string` | `"Default"` |
-| `Startup` | `boolean` | Deprecated/ignored. Branding startup always runs once. |
+| `Theme` | `string` | active theme |
+| `MinSize` | `{number, number}` | `{420, 320}` |
 | `Open` | `boolean` | `true` |
+| `ConfigId` | `string` | `nil` |
+| `Startup` | `boolean` | deprecated / ignored |
 
 ## Window
 
@@ -43,12 +54,10 @@
 | `Window:AddTab(name)` | Creates and returns a tab. |
 | `Window:SetOpen(value)` | Opens or closes the window. |
 | `Window:Resize(width, height)` | Resizes the window and respects `MinSize`. |
-| `Window:SetSize({width, height})` | Table-based alias for `Window:Resize`. |
+| `Window:SetSize({width, height})` | Table-based resize alias. |
 | `Window:SetMinSize({width, height})` | Updates minimum resize bounds. |
 | `Window:Toggle()` | Toggles open state. |
 | `Window:BringToFront()` | Moves the window above other windows. |
-
-Window content uses a draggable scrollbar when content exceeds the visible panel.
 
 ## Tab
 
@@ -75,31 +84,65 @@ Window content uses a draggable scrollbar when content exceeds the visible panel
 | `Groupbox:AddKeybind(config)` | Adds key selection/state. |
 | `Groupbox:AddColorPicker(config)` | Adds RGB color selection. |
 
-Long dropdown lists use an internal draggable scrollbar. Theme dropdowns named like `Theme` or `Select Theme` can call `DXForge:SetTheme` automatically.
+## Shared Config Fields
 
-## Component Notes
+Most controls support:
 
-| Component | Helpful fields |
+| Field | Purpose |
 | --- | --- |
-| `Dropdown` | `Text`, `Values`, `Default`, `Callback`. Long lists use a draggable popup scrollbar. |
-| `Textbox` | `Placeholder`, `Default`, `ClearButton`, `Callback`. |
-| `ColorPicker` | `Default`, `Alpha`, `ApplyToTheme`, `ThemeKey`. `Alpha = true` renders an alpha slider. Names like `Primary Color` and `Accent Color` infer theme tokens. |
-| `Keybind` | `Default`, `Mode = "Toggle"` or `Mode = "Hold"`. |
+| `Text` | Display label |
+| `Tooltip` | String or extended tooltip table |
+| `Callback` | Invoked when the value changes |
+| `Visible` | Initial visibility |
+| `Height` | Optional custom row height |
+| `ConfigId` | Stable manual config identifier |
 
-## Overlay Helpers
+## Component Value Helpers
+
+The following patterns now exist across configurable controls:
+
+| Method | Purpose |
+| --- | --- |
+| `component:GetValue()` | Returns the current user-facing value |
+| `component:SetValue(value, silent)` | Updates the component, optionally without callback |
+| `component:GetConfigValue()` | Returns the value used for persistence |
+| `component:SetConfigValue(value, silent)` | Applies persisted values safely |
+
+## Tooltip API
+
+### Simple
 
 ```lua
-DXForge:SetFOVCircle({
-    Visible = true,
-    Radius = 120,
-    Color = {184, 94, 255},
-    Thickness = 1,
-    FollowMouse = false
-})
+Tooltip = "Controls the FOV radius.\nHold SHIFT for precision."
 ```
 
-The FOV circle uses `dx9.DrawCircle` when available and falls back to segmented `dx9.DrawLine` rendering.
+### Extended
 
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=72&section=footer&color=0:14151C,55:B254FF,100:090A0F&animation=fadeIn" alt="Footer" width="100%" />
-</p>
+```lua
+Tooltip = {
+    Text = "Controls the FOV radius.\nHold SHIFT for precision.",
+    Keybind = "[SHIFT]",
+    MaxWidth = 280
+}
+```
+
+## Config API
+
+```lua
+DXForge:SetConfigFolder("DXForge")
+DXForge:SaveConfig("ProfileA")
+DXForge:LoadConfig("ProfileA", {Callbacks = false})
+DXForge:DeleteConfig("ProfileA")
+DXForge:GetConfigList()
+```
+
+## Autosave API
+
+```lua
+DXForge:EnableAutoSave({
+    File = "ProfileA.json",
+    Interval = 2
+})
+
+DXForge:DisableAutoSave()
+```

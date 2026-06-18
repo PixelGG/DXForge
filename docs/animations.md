@@ -1,24 +1,26 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:14151C&text=Animations&fontColor=F2EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Smooth%20motion%20without%20messy%20effects&descAlignY=64&descSize=13" alt="Animations" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=Animations&fontColor=F3EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Motion%20systems%20used%20across%20DXForge%201.1.x&descAlignY=64&descSize=13" alt="Animations" width="100%" />
 </p>
 
 [Back to docs](README.md)
 
 ## Motion Principles
 
-DXForge motion is built around short, consistent transitions:
+DXForge uses short, coherent transitions instead of heavy effects:
 
 | Area | Motion |
 | --- | --- |
 | Startup | Fade, scale, glow sweep, progress fill |
-| Window | Open/close interpolation |
-| Button | Hover and press feedback |
-| Toggle | Smooth switch movement |
-| Slider | Value smoothing |
-| Dropdown | Expansion/collapse |
-| ColorPicker | Reveal/collapse |
+| Window | Open / close interpolation |
+| Button | Hover glow and press feedback |
+| Toggle | Animated track and knob movement |
+| Slider | Value smoothing and handle growth |
+| Dropdown | Open-state interpolation |
+| Textbox | Hover and focus feedback |
+| Keybind | Recording-state pulse |
+| ColorPicker | Popup reveal |
 | Notification | Slide and fade |
-| Tooltip | Delayed fade-in feel |
+| Tooltip | Delay, fade-in, soft follow |
 
 ## Internal Animation Helper
 
@@ -28,25 +30,56 @@ DXForge uses:
 DXForge:Animate(id, target, speed)
 ```
 
-This stores animation values by `id` and interpolates toward `target`.
+This stores animation values by ID and interpolates them toward the target.
 
-## Startup Performance
+## Shared Component Animation State
 
-The startup logo is rendered only while the branded intro is active. When the intro finishes, DXForge releases the loaded logo reference and embedded raster run cache, so the normal UI path does not keep paying startup-logo cost.
+Configurable controls now use a shared internal animation table:
+
+```lua
+component.Anim = {
+    Hover = 0,
+    Active = 0,
+    Focus = 0,
+    Open = 0,
+    Recording = 0
+}
+```
+
+Internal helpers:
+
+```lua
+DXForge:InitComponentAnim(component)
+DXForge:UpdateComponentAnim(component, states, speed)
+DXForge:GetComponentAnim(component, key)
+```
+
+## Curved Edge Integration
+
+Animation polish works in both styles:
+
+- curved-edge mode
+- sharp rectangular fallback mode
+
+That means toggles, sliders, dropdowns, textboxes, and keybinds still animate even when `DXForge:CurvedEdges(false)` is used.
 
 ## Tuning
 
-Global animation speed lives in:
+Global animation speed:
 
 ```lua
-DXForge.Config.AnimationSpeed = 14
+DXForge.Config.AnimationSpeed = 15
 ```
 
-Higher values feel snappier. Lower values feel softer.
+Tooltip fade speed:
+
+```lua
+DXForge.Config.TooltipFadeSpeed = 14
+```
 
 ## Best Practices
 
-- Keep transitions short for overlay UI.
-- Use accent glow only for startup, active tabs, selected controls, and important feedback.
-- Avoid stacking too many open dropdowns or pickers at once.
-- Prefer consistent speeds over dramatic one-off effects.
+- keep overlay motion short
+- use accent glow for active and meaningful states
+- let the shared animation system do the work instead of adding one-off effects
+- avoid rebuilding the UI every frame, because that resets animation continuity

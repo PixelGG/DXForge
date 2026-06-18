@@ -3,74 +3,55 @@
 </p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:B254FF,100:14151C&text=DXForge&fontColor=F2EEFF&fontSize=38&fontAlignY=38&animation=fadeIn&desc=Modern%20DX9%20Lua%20UI%20Library&descAlignY=64&descSize=14" alt="DXForge animated header" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=120&section=header&color=0:090A0F,45:B254FF,100:161821&text=DXForge&fontColor=F3EEFF&fontSize=38&fontAlignY=38&animation=fadeIn&desc=Premium%20DX9%20Lua%20UI%20Library&descAlignY=64&descSize=14" alt="DXForge header" width="100%" />
 </p>
 
 <p align="center">
-  <img src="assets/DXForgeSingle.png" alt="DXForge logo" width="112" />
-</p>
-
-<p align="center">
-  <a href="https://git.io/typing-svg">
-    <img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=20&duration=2600&pause=700&color=B254FF&center=true&vCenter=true&width=820&lines=Premium+dark-tech+overlay+interfaces;Smooth+startup%2C+window%2C+tooltip+and+notification+animations;Clean+Lua+API+for+DX9+UI+development" alt="Animated DXForge description" />
-  </a>
+  <img src="assets/DXForgeSingle.png" alt="DXForge logo" width="110" />
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=B254FF" alt="Lua DX9" />
-  <img src="https://img.shields.io/badge/version-1.0.19-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.1.3-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Version" />
   <img src="https://img.shields.io/badge/license-MIT-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="License" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Author" />
 </p>
 
 <p align="center">
-  <sub>Clean structure. Smooth motion. Premium DX9 overlay UI.</sub>
+  <sub>Curved edges, component animations, premium tooltips, config persistence, and a polished DX9 overlay workflow.</sub>
 </p>
 
 ---
 
 ## Overview
 
-DXForge is a modern DX9-based Lua UI library for polished overlay interfaces. It is built around a dark-tech visual language, centralized input handling, smooth animation primitives, reusable controls, and a clean API that stays pleasant as menus grow.
+DXForge is a structured DX9WARE / Cult of Intellect Lua UI library for premium dark-tech overlays. It gives you a reusable window system, polished controls, smooth animation helpers, theme support, tooltips, notifications, overlays, startup branding, and now built-in config persistence with autosave.
 
-## Feature Grid
+## Highlights
 
-| Interface | Motion | Systems |
-| --- | --- | --- |
-| Windows | Startup reveal | Theme management |
-| Tabs | Hover transitions | Central input state |
-| Groupboxes | Open/close smoothing | Z-index handling |
-| Buttons | Slider smoothing | Click-through blocking |
-| Toggles | Dropdown animation | Text width caching |
-| Sliders | Tooltip fade | Debug-friendly errors |
-| Dropdowns | Draggable scrollbars | Watermark support |
-| FOV Circle | DX9 line fallback | Overlay helpers |
-| Color pickers | Color picker reveal | Extensible component layout |
+| Area | Included |
+| --- | --- |
+| Interface | Windows, tabs, groupboxes, labels, dividers, buttons, toggles, sliders, dropdowns, multi dropdowns, textboxes, keybinds, color pickers |
+| Polish | Curved edges, component hover/focus/active animation system, smooth toggles, upgraded tooltips, startup screen, premium notifications |
+| Systems | Theme registry, runtime theme editing, FOV circle, watermark, centralized input handling, z-order management, config save/load, autosave |
+| Compatibility | DX9WARE Lua 5.1.4 style workflow, fallback-safe rendering, no external dependencies, backward-compatible API |
 
-## Components
+## What Is New In The Current Build
 
-```text
-Window          Tabs            Groupboxes
-Button          Toggle          Slider
-Dropdown        MultiDropdown   Textbox
-Keybind         ColorPicker     Label
-Divider         Tooltip         Notification
-Watermark       Theme System    Startup Screen
-FOV Circle      Overlay Helpers
-```
-
-## Install
-
-```lua
-local DXForge = _G.DXForge or dofile("DXForge.lua")
-```
-
-DX9WARE runs Lua automatically every frame, so cache the library through `_G.DXForge` and call `DXForge:Render()` once per frame/script tick.
+| Version | Notable additions |
+| --- | --- |
+| `1.1.0` | Curved Edges system and rounded render helpers |
+| `1.1.1` | Centralized control hover / focus / active animation system |
+| `1.1.2` | Better tooltip system with wrapping, fade, delay, mouse-follow, keybind badges |
+| `1.1.3` | Built-in config persistence, autosave, stable config IDs, theme/window/component state saving |
 
 ## Quick Start
 
 ```lua
 local DXForge = _G.DXForge or dofile("DXForge.lua")
+
+DXForge:SetConfigFolder("DXForge")
+DXForge:LoadConfig("ExampleMenu")
 
 local Window = DXForge:CreateWindow({
     Title = "DXForge Example",
@@ -81,131 +62,112 @@ local Window = DXForge:CreateWindow({
 })
 
 local MainTab = Window:AddTab("Main")
-local CombatBox = MainTab:AddGroupbox("Combat", "left")
+local Visuals = MainTab:AddGroupbox("Visuals", "left")
 
-CombatBox:AddToggle({
-    Text = "Enable Feature",
-    Default = false,
-    Tooltip = "Toggles the example feature.",
+Visuals:AddToggle({
+    Text = "Enable ESP",
+    ConfigId = "visuals_enable_esp",
+    Default = true,
+    Tooltip = "Turns the ESP renderer on or off.",
     Callback = function(value)
-        print("Toggle:", value)
+        print("ESP:", value)
     end
 })
 
-CombatBox:AddSlider({
-    Text = "Speed",
-    Min = 0,
-    Max = 100,
-    Default = 50,
+Visuals:AddSlider({
+    Text = "FOV",
+    Min = 10,
+    Max = 500,
+    Default = 90,
     Step = 1,
-    Callback = function(value)
-        print("Speed:", value)
-    end
+    Tooltip = {
+        Text = "Controls the visible aimbot radius.\nHold SHIFT for precision adjustments.",
+        Keybind = "[SHIFT]"
+    }
 })
 
-CombatBox:AddDropdown({
-    Text = "Mode",
-    Values = {"Default", "Aggressive", "Silent"},
-    Default = "Default",
-    Callback = function(value)
-        print("Mode:", value)
-    end
-})
-
-CombatBox:AddColorPicker({
-    Text = "Accent Color",
-    Default = {180, 70, 255},
-    Callback = function(color)
-        print("Color:", color[1], color[2], color[3])
-    end
-})
-
-DXForge:Notify({
-    Text = "DXForge loaded successfully.",
-    Type = "Success",
-    Duration = 4
+DXForge:EnableAutoSave({
+    File = "ExampleMenu.json",
+    Interval = 2
 })
 
 DXForge:Render()
 ```
 
-## API Map
+## Core API
 
 | Scope | Method |
 | --- | --- |
 | Core | `DXForge:CreateWindow(config)` |
 | Core | `DXForge:Render()` |
 | Core | `DXForge:Notify(config)` |
-| Core | `DXForge:CreateTheme(name, values)` |
-| Core | `DXForge:RegisterTheme(name, values)` |
 | Core | `DXForge:SetTheme(name)` |
 | Core | `DXForge:SetThemeColor(key, color)` |
-| Core | `DXForge:GetThemeNames()` |
+| Core | `DXForge:CreateTheme(name, values)` |
+| Core | `DXForge:CurvedEdges(value)` |
+| Core | `DXForge:SetConfigFolder(folder)` |
+| Core | `DXForge:SaveConfig(name)` |
+| Core | `DXForge:LoadConfig(name, options)` |
+| Core | `DXForge:DeleteConfig(name)` |
+| Core | `DXForge:GetConfigList()` |
+| Core | `DXForge:EnableAutoSave(options)` |
+| Core | `DXForge:DisableAutoSave()` |
+| Core | `DXForge:SetWatermark(config)` |
 | Core | `DXForge:SetFOVCircle(config)` |
-| Window | `Window:AddTab(name)` |
-| Window | `Window:SetOpen(value)` |
-| Window | `Window:Resize(width, height)` |
-| Window | `Window:SetSize({width, height})` |
-| Window | `Window:SetMinSize({width, height})` |
-| Window | `Window:Toggle()` |
-| Tab | `Tab:AddGroupbox(name, side)` |
-| Groupbox | `Groupbox:AddButton(config)` |
-| Groupbox | `Groupbox:AddToggle(config)` |
-| Groupbox | `Groupbox:AddSlider(config)` |
-| Groupbox | `Groupbox:AddDropdown(config)` |
-| Groupbox | `Groupbox:AddMultiDropdown(config)` |
-| Groupbox | `Groupbox:AddTextbox(config)` |
-| Groupbox | `Groupbox:AddKeybind(config)` |
-| Groupbox | `Groupbox:AddColorPicker(config)` |
+
+## Included Controls
+
+```text
+Window          Tab             Groupbox
+Button          Toggle          Slider
+Dropdown        MultiDropdown   Textbox
+Keybind         ColorPicker     Label
+Divider         Tooltip         Notification
+Watermark       FOV Circle      Startup Screen
+Theme System    Config System   Overlay Helpers
+```
+
+## Persistence Support
+
+DXForge can save and restore:
+
+- Toggle, slider, dropdown, multi dropdown, textbox, keybind, and color picker values
+- Active theme and runtime theme overrides
+- Window position, size, open state, and active tab
+- Curved edge state
+- Future component states through the same config registry path
 
 ## Documentation
 
 | Guide | Description |
 | --- | --- |
-| [Docs Home](docs/README.md) | Start here for the full documentation map. |
-| [Getting Started](docs/getting-started.md) | Installation, first window, render loop, and basic setup. |
-| [API Reference](docs/api-reference.md) | Core, window, tab, groupbox, and component methods. |
-| [Components](docs/components.md) | Practical usage for every included UI control. |
-| [Themes](docs/themes.md) | Theme tokens, custom themes, and styling guidance. |
-| [Animations](docs/animations.md) | Startup, hover, dropdown, tooltip, and notification motion. |
-| [Startup Screen](docs/startup-screen.md) | Loading screen behavior, branding, and configuration. |
-| [Notifications & Tooltips](docs/notifications-tooltips.md) | Feedback patterns and hover help. |
-| [Input & Windowing](docs/input-windowing.md) | Click handling, focus, z-index, dragging, and resizing. |
-| [DX9 Compatibility](docs/dx9-compatibility.md) | Cult-of-Intellect/DX9 API expectations and fallbacks. |
-| [Examples](docs/examples.md) | Copy-ready snippets for common menu layouts. |
-| [Troubleshooting](docs/troubleshooting.md) | Common mistakes and fixes. |
+| [Docs Home](docs/README.md) | Full documentation hub and reading order. |
+| [Getting Started](docs/getting-started.md) | Setup, first window, and render loop basics. |
+| [API Reference](docs/api-reference.md) | Library, window, tab, and control API map. |
+| [Components](docs/components.md) | Real usage examples for every built-in control. |
+| [Themes](docs/themes.md) | Theme tokens, editing, and customization workflow. |
+| [Animations](docs/animations.md) | Motion behavior and visual polish systems. |
+| [Notifications & Tooltips](docs/notifications-tooltips.md) | Feedback UX and hover guidance. |
+| [Input & Windowing](docs/input-windowing.md) | Dragging, resizing, focus, z-index, and interaction flow. |
+| [DX9 Compatibility](docs/dx9-compatibility.md) | DX9WARE Lua expectations and fallback notes. |
+| [Examples](docs/examples.md) | Copy-ready layouts and practical snippets. |
 
-## Theme Example
+## Scripts In This Repository
 
-```lua
-DXForge:CreateTheme("VioletSteel", {
-    Base = "Dark",
-    FontColor = {238, 238, 246},
-    MainColor = {18, 19, 24},
-    BackgroundColor = {8, 9, 13},
-    AccentColor = {178, 84, 255},
-    OutlineColor = {58, 60, 72},
-    PanelColor = {25, 26, 34},
-    TextMutedColor = {150, 152, 166},
-    GlowColor = {145, 60, 255}
-})
-
-DXForge:SetTheme("VioletSteel")
-```
-
-Theme dropdowns named like `Theme` or `Select Theme` can switch registered themes automatically. Color pickers named like `Primary Color` and `Accent Color` update the matching theme tokens without extra glue code.
-
-## Motion Profile
-
-DXForge uses small, consistent animation primitives instead of heavy effects. Startup reveal, hover states, toggle movement, slider smoothing, dropdown expansion, tooltip fade, color picker reveal, and notification slide/fade are all handled through the same animation layer for a more coherent feel.
+| Script | Game | README |
+| --- | --- | --- |
+| `AR2_DOMINION.lua` | Apocalypse Rising 2 | [Scripts/AR2/README.md](Scripts/AR2/README.md) |
+| `BRM5.lua` | Blackhawk Rescue Mission 5 / Ronograd | [Scripts/BRM5/README.md](Scripts/BRM5/README.md) |
 
 ## Project Layout
 
 ```text
 DXForge/
 |-- assets/
-|   |-- DXForgeBanner.png
-|   `-- DXForgeSingle.png
+|-- docs/
+|-- Scripts/
+|   |-- AR2/
+|   `-- BRM5/
 |-- DXForge.lua
 |-- DXForge.png
 |-- LICENSE
@@ -216,12 +178,12 @@ DXForge/
 
 Created by **PixelGG**.
 
-DXForge is designed as a premium dark-tech DX9 Lua UI library with clean code sections, reliable state handling, and a polished visual identity.
+DXForge is built for DX9 overlay workflows that want structure, polish, and long-term maintainability without giving up fast iteration.
 
 ## License
 
 DXForge is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=90&section=footer&color=0:14151C,55:B254FF,100:090A0F&animation=fadeIn" alt="DXForge animated footer" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=88&section=footer&color=0:161821,55:B254FF,100:090A0F&animation=fadeIn" alt="DXForge footer" width="100%" />
 </p>
