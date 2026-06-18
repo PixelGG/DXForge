@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=API%20Reference&fontColor=F3EEFF&fontSize=32&fontAlignY=38&animation=fadeIn&desc=Core%2C%20windows%2C%20tabs%2C%20controls%2C%20configs%20and%20tooltips&descAlignY=64&descSize=13" alt="API Reference" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=API%20Reference&fontColor=F3EEFF&fontSize=32&fontAlignY=38&animation=fadeIn&desc=Core%2C%20windows%2C%20tabs%2C%20controls%2C%20themes%20and%20overlays&descAlignY=64&descSize=13" alt="API Reference" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -8,28 +8,32 @@
 
 | Method | Returns | Description |
 | --- | --- | --- |
-| `DXForge:CreateWindow(config)` | `Window` | Creates a new UI window. |
-| `DXForge:Render()` | `DXForge` | Updates input, autosave, overlays, startup, windows, notifications, and tooltips. |
+| `DXForge:CreateWindow(config)` | `Window` | Creates and registers a UI window. |
+| `DXForge:Render()` | `DXForge` | Updates input, startup, overlays, windows, notifications, and tooltips. |
 | `DXForge:Notify(config)` | `DXForge` | Adds a notification card. |
-| `DXForge:CreateTheme(name, values)` | `DXForge` | Registers a custom theme with inheritance support. |
-| `DXForge:RegisterTheme(name, values)` | `DXForge` | Low-level theme registration helper. |
+| `DXForge:SetWatermark(config)` | `DXForge` | Configures the watermark overlay. |
+| `DXForge:SetFOVCircle(config)` | `DXForge` | Configures the optional FOV circle overlay. |
+| `DXForge:Destroy()` | `DXForge` | Clears windows, notifications, animations, and overlay state. |
+| `DXForge:SetDebug(value)` | `DXForge` | Enables or disables debug warnings. |
+
+## Theme API
+
+| Method | Returns | Description |
+| --- | --- | --- |
+| `DXForge:RegisterTheme(name, values)` | `DXForge` | Registers a theme table. |
+| `DXForge:CreateTheme(name, values)` | `DXForge` | Friendly alias for registering a theme. |
 | `DXForge:UpdateTheme(name, values)` | `DXForge` | Patches an existing theme. |
 | `DXForge:SetTheme(name)` | `DXForge` | Sets the active global theme. |
 | `DXForge:SetThemeColor(key, color)` | `DXForge` | Updates one token on the active theme. |
 | `DXForge:GetThemeNames()` | `table` | Returns all registered theme names. |
-| `DXForge:CurvedEdges(value)` | `DXForge` or `boolean` | Enables/disables curved rendering, or returns the current state when `value == nil`. |
-| `DXForge:SetCurvedEdges(value)` | `DXForge` or `boolean` | Internal/alternate curved-edge setter. |
-| `DXForge:SetWatermark(config)` | `DXForge` | Configures the watermark. |
-| `DXForge:SetFOVCircle(config)` | `DXForge` | Configures the optional FOV circle overlay. |
-| `DXForge:SetConfigFolder(folder)` | `DXForge` | Sets the config folder and tries to create it when supported. |
-| `DXForge:SaveConfig(name)` | `boolean` | Saves config data to a JSON-style file. |
-| `DXForge:LoadConfig(name, options)` | `boolean` | Loads config data and applies it safely. |
-| `DXForge:DeleteConfig(name)` | `boolean` | Deletes a config file. |
-| `DXForge:GetConfigList()` | `table` | Returns available config filenames. |
-| `DXForge:EnableAutoSave(options)` | `DXForge` | Enables timed autosave. |
-| `DXForge:DisableAutoSave()` | `DXForge` | Disables autosave. |
-| `DXForge:SetDebug(value)` | `DXForge` | Enables or disables debug warnings. |
-| `DXForge:Destroy()` | `DXForge` | Clears windows, notifications, animations, and config registries. |
+| `DXForge:GetTheme(name)` | `table` | Returns a resolved theme table. |
+
+## Animation Helpers
+
+| Method | Returns | Description |
+| --- | --- | --- |
+| `DXForge:Animate(id, target, speed)` | `number` | Interpolates and stores a value by ID. |
+| `DXForge:Pulse(speed)` | `number` | Returns a looping pulse value from `0` to `1`. |
 
 ## CreateWindow Config
 
@@ -38,14 +42,14 @@
 | `Title` | `string` | `"DXForge Window"` |
 | `Size` | `{number, number}` | `{600, 500}` |
 | `Position` | `{number, number}` | centered |
+| `StartLocation` | `{number, number}` | legacy alias for `Position` |
+| `MinSize` | `{number, number}` | `{420, 320}` |
 | `ToggleKey` | `string` | `nil` |
 | `Resizable` | `boolean` | `false` |
 | `Footer` | `boolean` | `true` |
 | `Theme` | `string` | active theme |
-| `MinSize` | `{number, number}` | `{420, 320}` |
 | `Open` | `boolean` | `true` |
-| `ConfigId` | `string` | `nil` |
-| `Startup` | `boolean` | deprecated / ignored |
+| `Startup` | `boolean` | deprecated / ignored in `1.0.19` |
 
 ## Window
 
@@ -82,67 +86,53 @@
 | `Groupbox:AddMultiDropdown(config)` | Adds multi-select values. |
 | `Groupbox:AddTextbox(config)` | Adds text input. |
 | `Groupbox:AddKeybind(config)` | Adds key selection/state. |
-| `Groupbox:AddColorPicker(config)` | Adds RGB color selection. |
+| `Groupbox:AddColorPicker(config)` | Adds RGB/RGBA color selection. |
 
-## Shared Config Fields
-
-Most controls support:
+## Shared Component Fields
 
 | Field | Purpose |
 | --- | --- |
-| `Text` | Display label |
-| `Tooltip` | String or extended tooltip table |
-| `Callback` | Invoked when the value changes |
+| `Text` / `Name` | Display label |
+| `Tooltip` | Tooltip string shown on hover |
+| `Callback` | Invoked when the value changes or button is pressed |
 | `Visible` | Initial visibility |
 | `Height` | Optional custom row height |
-| `ConfigId` | Stable manual config identifier |
 
-## Component Value Helpers
+## Component Helpers
 
-The following patterns now exist across configurable controls:
+| Method | Components | Purpose |
+| --- | --- | --- |
+| `component:SetVisible(value)` | all components | Shows or hides a component. |
+| `component:SetTooltip(text)` | all components | Replaces tooltip text. |
+| `toggle:SetValue(value, silent)` | toggle | Updates boolean state. |
+| `slider:SetValue(value, silent)` | slider | Updates numeric value. |
+| `textbox:SetValue(value, silent)` | textbox | Updates text value. |
+| `keybind:SetKey(key, silent)` | keybind | Updates recorded key. |
+| `colorPicker:SetColor(color, silent)` | color picker | Updates selected color. |
 
-| Method | Purpose |
+## Notification Config
+
+| Field | Description |
 | --- | --- |
-| `component:GetValue()` | Returns the current user-facing value |
-| `component:SetValue(value, silent)` | Updates the component, optionally without callback |
-| `component:GetConfigValue()` | Returns the value used for persistence |
-| `component:SetConfigValue(value, silent)` | Applies persisted values safely |
+| `Text` | Notification body. Supports newlines. |
+| `Type` | `Info`, `Success`, `Warning`, or `Error`. |
+| `Duration` / `Length` | Lifetime in seconds. |
+| `ManualClose` | Keeps the card open until the close button is pressed. |
 
-## Tooltip API
-
-### Simple
+## Overlay Config
 
 ```lua
-Tooltip = "Controls the FOV radius.\nHold SHIFT for precision."
-```
-
-### Extended
-
-```lua
-Tooltip = {
-    Text = "Controls the FOV radius.\nHold SHIFT for precision.",
-    Keybind = "[SHIFT]",
-    MaxWidth = 280
-}
-```
-
-## Config API
-
-```lua
-DXForge:SetConfigFolder("DXForge")
-DXForge:SaveConfig("ProfileA")
-DXForge:LoadConfig("ProfileA", {Callbacks = false})
-DXForge:DeleteConfig("ProfileA")
-DXForge:GetConfigList()
-```
-
-## Autosave API
-
-```lua
-DXForge:EnableAutoSave({
-    File = "ProfileA.json",
-    Interval = 2
+DXForge:SetWatermark({
+    Text = "DXForge",
+    Visible = true,
+    Position = {12, 12}
 })
 
-DXForge:DisableAutoSave()
+DXForge:SetFOVCircle({
+    Visible = true,
+    Radius = 120,
+    Color = {184, 94, 255},
+    Thickness = 1,
+    Segments = 96
+})
 ```

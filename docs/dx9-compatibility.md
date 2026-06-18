@@ -18,7 +18,7 @@ DXForge targets DX9WARE's vanilla Lua `5.1.4` environment with the additional `d
 | `dx9.GetKey()` | Toggle keys, keybinds, and textbox input |
 | `dx9.CalcTextWidth(text)` | Text trimming and layout |
 | `dx9.DrawString(pos, color, text)` | Text rendering |
-| `dx9.DrawFilledBox(pos1, pos2, color)` | Panels, controls, fills, rounded fallback composition |
+| `dx9.DrawFilledBox(pos1, pos2, color)` | Panels, controls, fills, logo fallback |
 | `dx9.DrawLine(pos1, pos2, color)` | Dividers, markers, fallback circles |
 
 ## Optional DX9 Functions
@@ -28,25 +28,18 @@ DXForge targets DX9WARE's vanilla Lua `5.1.4` environment with the additional `d
 | `dx9.DrawImage(...)` | Startup logo falls back to embedded raster rendering |
 | `dx9.DrawCircle(...)` | FOV circle falls back to segmented line rendering |
 
-## Optional File APIs For Config Persistence
+## Optional File APIs
 
-DXForge `1.1.3` can use optional file APIs if the environment exposes them:
+DXForge `1.0.19` uses optional file APIs only for startup-logo cache helpers when available. Built-in user config persistence is not part of the current library file.
 
 | Function | Used for |
 | --- | --- |
-| `writefile` | Save configs |
-| `readfile` | Load configs |
-| `isfile` | Existence checks |
-| `isfolder` | Folder checks |
-| `makefolder` | Config folder creation |
-| `listfiles` | Config listing |
-| `delfile` | Config deletion |
+| `writefile` | Logo cache writes |
+| `isfile` | Logo source existence checks |
 
-If these functions are missing, DXForge does not crash. Saving and loading simply fail gracefully, with debug output only when `DXForge.Debug == true`.
+## Rendering Compatibility
 
-## Rounded UI Compatibility
-
-DXForge does not assume native rounded rectangle support. Rounded surfaces are composed from lightweight filled-box passes, so curved edges stay compatible with DX9-style drawing primitives.
+DXForge uses standard DX9 primitives for rectangular surfaces, lines, text, circles, and image fallback paths. Rounded-edge helpers and curved-edge toggles are not part of this downgraded `1.0.19` file.
 
 ## Correct Loading Pattern
 
@@ -59,4 +52,4 @@ local DXForge = _G.DXForge or dofile("DXForge.lua")
 - DXForge wraps many DX9 calls with protected execution where practical
 - coordinates are normalized and clamped before rendering
 - draggable scrollbars are used because no official mouse-wheel API is documented
-- config persistence depends on optional file APIs, not on the `dx9` library itself
+- script-specific state is handled by the individual game scripts, not by DXForge config files

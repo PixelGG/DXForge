@@ -6,19 +6,19 @@
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=FF4747" alt="Lua DX9" />
   <img src="https://img.shields.io/badge/script-AR2%20DOMINION-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Script" />
   <img src="https://img.shields.io/badge/game-Apocalypse%20Rising%202-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Game" />
-  <img src="https://img.shields.io/badge/UI-DXForge%201.1.3-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="DXForge UI" />
-  <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Author" />
+  <img src="https://img.shields.io/badge/UI-DXForge%201.0.19-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="DXForge UI" />
+  <img src="https://img.shields.io/badge/author-Lorthanyx-1A1B22?style=flat-square&labelColor=101116&color=FF4747" alt="Author" />
 </p>
 
 <p align="center">
-  <sub>Full-spectrum AR2 ESP, dual aimbot flow, polished overlays, and the current DXForge UI feature set.</sub>
+  <sub>AR2 player, zombie, vehicle, loot and corpse ESP with dual aimbot flow and DXForge 1.0.19 UI.</sub>
 </p>
 
 ---
 
 ## Overview
 
-`AR2_DOMINION.lua` is the Apocalypse Rising 2-focused DX9WARE script in this repository. It combines wide ESP coverage, separate player and zombie aimbot handling, configurable overlays, and a DXForge-powered premium menu with current-generation UI features like curved edges, animated controls, better tooltips, and built-in config persistence.
+`AR2_DOMINION.lua` is the Apocalypse Rising 2-focused DX9WARE script in this repository. It combines player, zombie, vehicle, loot and dead-body ESP, separate player and zombie aimbot handling, configurable overlays, and a DXForge-powered menu.
 
 ## Key Systems
 
@@ -26,10 +26,10 @@
 | --- | --- |
 | Player ESP | Box, name, distance, health, tracelines, skeleton, snap lines, nearest indicator |
 | Zombie ESP | Box, name, distance, health, tracelines, skeleton, type labels, nearest indicator, proximity alerts |
-| World ESP | Vehicles, loot containers, searchable loot, world utility, dead bodies |
+| World ESP | Vehicles, loot containers, dead bodies, corpse equipment summary |
 | Aimbot | Player aimbot, zombie aimbot, FOV controls, smoothness, sensitivity, aim-part selection, sticky aim |
 | Overlays | Crosshair, watermark, FPS counter, session timer, stats overlay, location tag |
-| UI | DXForge 1.1.3 with curved edges, control animations, upgraded tooltips, config save/load, autosave |
+| UI | DXForge 1.0.19 window with ESP, Aimbot, Visuals, and Settings tabs |
 
 ## Install
 
@@ -37,18 +37,13 @@
 loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scripts/AR2/AR2_DOMINION.lua"))()
 ```
 
-## Suggested Runtime Flow
+## Runtime Notes
 
 ```lua
 local DXForge = _G.DXForge or dofile("DXForge.lua")
-
-DXForge:SetConfigFolder("DXForge")
-DXForge:LoadConfig("AR2_DOMINION")
-DXForge:EnableAutoSave({
-    File = "AR2_DOMINION.json",
-    Interval = 2
-})
 ```
+
+The script downloads and initializes DXForge itself, then rebuilds the window on load. Settings are kept in `_G.DOMINION_STATE` for the active runtime; built-in file config save/load is not part of the current DXForge `1.0.19` file.
 
 ## UI Layout
 
@@ -65,7 +60,7 @@ DXForge:EnableAutoSave({
 | Aimbot | FOV Circle | Show FOV, source mode, color |
 | Visuals | Crosshair | Enable, style, size, gap, center dot, color |
 | Visuals | Overlays | Watermark, FPS counter, stats overlay, location display |
-| Settings | General | Console, script info, reset behavior, config-facing settings |
+| Settings | General | Console, script info, reset behavior |
 
 ## Vehicle Categories
 
@@ -76,18 +71,6 @@ DXForge:EnableAutoSave({
 | Military | Humvee, Military Pickup, Barracks Truck, Armored Truck |
 | Emergency | Police CUV, Police Car, Ambulance, Firetruck |
 | Boat | Speed Boat, Swing Keel Boat, Aluminum Boat, Lifeboat, Rubber Dinghy, Patrol Boat |
-
-## Searchable Loot Categories
-
-```text
-Medical
-Weapon
-Food
-Vehicle
-Industrial
-Utility
-Civilian
-```
 
 ## Zombie Type Groups
 
@@ -126,7 +109,7 @@ This README now follows the same presentation level as the root DXForge docs:
 - same badge style
 - same section rhythm
 - same dark-tech visual direction
-- same current DXForge version reference
+- same current DXForge 1.0.19 version reference
 
 ## Related Docs
 
@@ -138,8 +121,8 @@ This README now follows the same presentation level as the root DXForge docs:
 
 ## Credits
 
-Created by **PixelGG**.  
-UI powered by **DXForge 1.1.3**.
+Created by **Lorthanyx**.  
+UI powered by **DXForge 1.0.19**.
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=88&section=footer&color=0:161821,55:FF4747,100:090A0F&animation=fadeIn" alt="AR2 DOMINION footer" width="100%" />

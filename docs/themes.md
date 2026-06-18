@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=Themes&fontColor=F3EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Tokens%2C%20runtime%20editing%2C%20and%20persistence&descAlignY=64&descSize=13" alt="Themes" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=105&section=header&color=0:090A0F,45:B254FF,100:161821&text=Themes&fontColor=F3EEFF&fontSize=34&fontAlignY=38&animation=fadeIn&desc=Tokens%2C%20runtime%20editing%2C%20and%20component%20theme%20binding&descAlignY=64&descSize=13" alt="Themes" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -92,13 +92,13 @@ Menu:AddColorPicker({
 })
 ```
 
-## Theme Persistence
+## Current Runtime Behavior
 
-DXForge `1.1.3` persists:
+DXForge `1.0.19` keeps theme state in memory for the active runtime:
 
-- active theme name
-- runtime-edited theme colors
-- theme changes from `SetThemeColor`
-- theme changes from color pickers that apply to the theme
+- `SetTheme` updates the active theme immediately
+- `SetThemeColor` patches the active theme table
+- `UpdateTheme` patches an existing registered theme
+- theme-bound color pickers can edit matching tokens while the UI is running
 
-This means custom in-menu theme editing survives config save/load automatically.
+Built-in file persistence and autosave are not part of the current downgraded library file.

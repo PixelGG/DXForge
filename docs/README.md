@@ -8,12 +8,12 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/docs-aligned-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Docs aligned" />
-  <img src="https://img.shields.io/badge/library-DXForge%201.1.3-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="DXForge 1.1.3" />
+  <img src="https://img.shields.io/badge/library-DXForge%201.0.19-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="DXForge 1.0.19" />
   <img src="https://img.shields.io/badge/style-premium%20dark--tech-1A1B22?style=flat-square&labelColor=101116&color=B254FF" alt="Dark tech style" />
 </p>
 
 <p align="center">
-  <sub>One visual language, one documentation standard, one current feature set.</sub>
+  <sub>One visual language, one documentation standard, aligned to the current Lua files.</sub>
 </p>
 
 ---
@@ -26,7 +26,7 @@
 | [API Reference](api-reference.md) | Core methods, config objects, return values, and structure. |
 | [Components](components.md) | Buttons, toggles, sliders, dropdowns, textboxes, keybinds, color pickers, labels, and dividers. |
 | [Themes](themes.md) | Theme tokens, runtime editing, and custom theme workflow. |
-| [Animations](animations.md) | Curved edges, control motion, toggle smoothing, tooltip fade, and notification polish. |
+| [Animations](animations.md) | Control motion, toggle smoothing, startup motion, and notification polish. |
 | [Startup Screen](startup-screen.md) | Startup branding, logo behavior, and timing. |
 | [Notifications & Tooltips](notifications-tooltips.md) | User feedback cards and hover UX. |
 | [Overlays](overlays.md) | FOV circle and lightweight overlay systems. |
@@ -48,11 +48,11 @@
 
 | System | Status |
 | --- | --- |
-| Curved Edges | Included |
-| Component Hover / Focus / Active Animations | Included |
-| Better Tooltip System | Included |
-| Built-in Config Persistence | Included |
-| Autosave | Included |
+| Window / Tab / Groupbox UI | Included |
+| Component Hover / Active Animations | Included |
+| Basic Tooltip System | Included |
+| Built-in Config Persistence | Not included in `1.0.19` |
+| Autosave | Not included in `1.0.19` |
 | Runtime Theme Overrides | Included |
 
 ## Related Files
@@ -68,7 +68,7 @@
 | Key | Value |
 | --- | --- |
 | Library | `DXForge` |
-| Current Version | `1.1.3` |
+| Current Version | `1.0.19` |
 | Maintainer | `PixelGG` |
 | License | `MIT` |
 

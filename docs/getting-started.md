@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=rect&height=92&color=0:090A0F,100:161821&text=Getting%20Started&fontColor=F3EEFF&fontSize=30&animation=fadeIn&desc=Install%2C%20create%20a%20window%2C%20render%2C%20persist%20settings&descSize=13&descAlignY=70" alt="Getting Started" width="100%" />
+  <img src="https://capsule-render.vercel.app/api?type=rect&height=92&color=0:090A0F,100:161821&text=Getting%20Started&fontColor=F3EEFF&fontSize=30&animation=fadeIn&desc=Install%2C%20create%20a%20window%2C%20add%20controls%2C%20render&descSize=13&descAlignY=70" alt="Getting Started" width="100%" />
 </p>
 
 [Back to docs](README.md)
@@ -16,17 +16,6 @@ local DXForge = _G.DXForge or dofile("DXForge.lua")
 
 DX9WARE runs Lua every frame, so `_G.DXForge` avoids rebuilding the library repeatedly. Keep `DXForge.lua` local in the workspace and load it with `dofile`.
 
-## Recommended Startup Pattern
-
-```lua
-local DXForge = _G.DXForge or dofile("DXForge.lua")
-
-DXForge:SetConfigFolder("DXForge")
-DXForge:LoadConfig("StarterMenu")
-```
-
-This is optional, but it is the cleanest way to let saved settings apply as soon as controls get created.
-
 ## Create Your First Window
 
 ```lua
@@ -38,6 +27,8 @@ local Window = DXForge:CreateWindow({
     Theme = "Default"
 })
 ```
+
+The first window triggers the DXForge startup screen once.
 
 ## Add A Tab And Groupbox
 
@@ -58,12 +49,8 @@ local MainBox = MainTab:AddGroupbox("General", "left")
 ```lua
 MainBox:AddToggle({
     Text = "Enabled",
-    ConfigId = "general_enabled",
     Default = true,
-    Tooltip = {
-        Text = "Turns the example feature on or off.\nSaved automatically if config persistence is enabled.",
-        Keybind = "[F]"
-    },
+    Tooltip = "Turns the example feature on or off.",
     Keybind = "[F]",
     Callback = function(value)
         print("Enabled:", value)
@@ -72,7 +59,6 @@ MainBox:AddToggle({
 
 MainBox:AddSlider({
     Text = "Speed",
-    ConfigId = "general_speed",
     Min = 0,
     Max = 100,
     Default = 50,
@@ -83,25 +69,14 @@ MainBox:AddSlider({
 ## Optional Visual Systems
 
 ```lua
-DXForge:CurvedEdges(true)
 DXForge:SetTheme("Default")
-```
-
-DXForge `1.1.x` includes:
-
-- curved edges
-- centralized control animations
-- upgraded tooltips
-- built-in config persistence
-
-## Enable Autosave
-
-```lua
-DXForge:EnableAutoSave({
-    File = "StarterMenu.json",
-    Interval = 2
+DXForge:SetWatermark({
+    Text = "DXForge",
+    Visible = true
 })
 ```
+
+DXForge `1.0.19` includes themes, control animations, basic tooltips, notifications, a watermark, and an optional FOV circle.
 
 ## Render Loop
 
@@ -115,9 +90,6 @@ DXForge:Render()
 
 ```lua
 local DXForge = _G.DXForge or dofile("DXForge.lua")
-
-DXForge:SetConfigFolder("DXForge")
-DXForge:LoadConfig("StarterMenu")
 
 local Window = DXForge:CreateWindow({
     Title = "DXForge Starter",
@@ -145,13 +117,7 @@ Box:AddButton({
 
 Box:AddTextbox({
     Text = "Profile Name",
-    ConfigId = "profile_name",
     Placeholder = "Enter a name..."
-})
-
-DXForge:EnableAutoSave({
-    File = "StarterMenu.json",
-    Interval = 2
 })
 
 DXForge:Render()

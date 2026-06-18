@@ -6,19 +6,19 @@
   <img src="https://img.shields.io/badge/Lua-DX9-1A1B22?style=flat-square&logo=lua&logoColor=white&labelColor=101116&color=FF3C3C" alt="Lua DX9" />
   <img src="https://img.shields.io/badge/script-BRM5%20WARZONE-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Script" />
   <img src="https://img.shields.io/badge/game-Ronograd-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Game" />
-  <img src="https://img.shields.io/badge/UI-DXForge%201.1.3-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="DXForge UI" />
+  <img src="https://img.shields.io/badge/UI-DXForge%201.0.19-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="DXForge UI" />
   <img src="https://img.shields.io/badge/author-PixelGG-1A1B22?style=flat-square&labelColor=101116&color=FF3C3C" alt="Author" />
 </p>
 
 <p align="center">
-  <sub>Ronograd ESP, player and NPC aimbot flows, recoil assistance, polished overlays, and the same updated DXForge UI standard.</sub>
+  <sub>Ronograd ESP, player and NPC aimbot flows, recoil assistance, polished overlays, and DXForge 1.0.19 UI.</sub>
 </p>
 
 ---
 
 ## Overview
 
-`BRM5.lua` is the Ronograd / BRM5-focused DX9WARE script in this repository. It combines player and NPC ESP, world ESP, configurable aimbot behavior, recoil assistance, overlay utilities, and a DXForge-driven menu that matches the current library feature set visually and structurally.
+`BRM5.lua` is the Ronograd / BRM5-focused DX9WARE script in this repository. It combines player and NPC ESP, world ESP, configurable aimbot behavior, recoil assistance, overlay utilities, and a DXForge-driven five-tab menu.
 
 ## Key Systems
 
@@ -30,7 +30,7 @@
 | Aimbot | Player aimbot, NPC aimbot, FOV controls, smoothness, sensitivity, aim-part selection |
 | Combat Utility | Counter recoil with configurable power |
 | Overlays | Crosshair, watermark, FPS counter, stat tracker, debug display |
-| UI | DXForge 1.1.3 with curved edges, animated controls, better tooltips, config persistence, autosave |
+| UI | DXForge 1.0.19 with Players, NPCs, World, Visuals, and Settings tabs |
 
 ## Install
 
@@ -38,18 +38,13 @@
 loadstring(dx9.Get("https://raw.githubusercontent.com/PixelGG/DXForge/main/Scripts/BRM5/BRM5.lua"))()
 ```
 
-## Suggested Runtime Flow
+## Runtime Notes
 
 ```lua
 local DXForge = _G.DXForge or dofile("DXForge.lua")
-
-DXForge:SetConfigFolder("DXForge")
-DXForge:LoadConfig("BRM5_WARZONE")
-DXForge:EnableAutoSave({
-    File = "BRM5_WARZONE.json",
-    Interval = 2
-})
 ```
+
+The script downloads and initializes DXForge itself, then stores runtime state in `_G.WARZONE`. Built-in file config save/load is not part of the current DXForge `1.0.19` file.
 
 ## UI Layout
 
@@ -63,8 +58,8 @@ DXForge:EnableAutoSave({
 | World | Loot & Ammo ESP | Enable, box, name, distance, tracers, max distance, colors |
 | World | Spawner ESP | Enable, box, name, distance, tracers, colors |
 | Visuals | Crosshair | Enable, style, center dot, size, gap, color |
-| Visuals | Overlays | Watermark, FPS counter, stat tracker, debug mode |
-| Settings | General | Console, reset settings, script info, config-facing settings |
+| Visuals | Overlays | Watermark, FPS counter, stat tracker, debug mode, show console |
+| Settings | General | Place info, UI info, cache reset, state reset |
 
 ## Vehicle Groups
 
@@ -129,7 +124,7 @@ This README is now aligned with the rest of the repository:
 
 - same badge language
 - same layout density
-- same current DXForge version reference
+- same current DXForge 1.0.19 version reference
 - same premium dark-tech presentation standard
 
 ## Related Docs
@@ -143,7 +138,7 @@ This README is now aligned with the rest of the repository:
 ## Credits
 
 Created by **PixelGG**.  
-UI powered by **DXForge 1.1.3**.
+UI powered by **DXForge 1.0.19**.
 
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=88&section=footer&color=0:161821,55:FF3C3C,100:090A0F&animation=fadeIn" alt="BRM5 WARZONE footer" width="100%" />
