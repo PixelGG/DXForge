@@ -32,6 +32,7 @@
 | [Overlays](overlays.md) | FOV circle and lightweight overlay systems. |
 | [Input & Windowing](input-windowing.md) | Focus, z-index, dragging, resizing, and click ownership. |
 | [DX9 Compatibility](dx9-compatibility.md) | DX9WARE / Cult of Intellect environment expectations and rendering fallbacks. |
+| [DXForgeExecute](DXForgeExecute.md) | Roblox Luau / Potassium-compatible successor-track library notes and examples. |
 | [Examples](examples.md) | Copy-ready snippets for practical menus. |
 | [Troubleshooting](troubleshooting.md) | Common issues and fixes. |
 
@@ -60,6 +61,7 @@
 | File | Purpose |
 | --- | --- |
 | [../README.md](../README.md) | Main project overview and quick-start entry point. |
+| [DXForgeExecute.md](DXForgeExecute.md) | Potassium-compatible DXForgeExecute guide. |
 | [../Scripts/AR2/README.md](../Scripts/AR2/README.md) | Apocalypse Rising 2 script documentation. |
 | [../Scripts/BRM5/README.md](../Scripts/BRM5/README.md) | BRM5 / Ronograd script documentation. |
 
